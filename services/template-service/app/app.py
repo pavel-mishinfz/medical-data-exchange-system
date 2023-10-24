@@ -66,7 +66,7 @@ def get_template(template_id: int):
     return JSONResponse(status_code=404, content={"message": "Шаблон не найден"})
 
 
-@app.get('/templates', summary='Возвращает список всех шаблонов', tags=["templates"])
+@app.get('/templates', response_model=list[TemplateBase], summary='Возвращает список всех шаблонов', tags=["templates"])
 def get_template():
     return [TemplateBase(id=v.id, name=v.name) for k, v in templates.items()]
 
