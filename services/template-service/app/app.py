@@ -24,7 +24,7 @@ description = """
 tags_metadata = [
     {
         "name": "templates",
-        "description": "Operations with templates.",
+        "description": "Операции с шаблонами",
     }
 ]
 
@@ -49,7 +49,7 @@ def add_template(name: str, file: UploadFile):
         with open(result.path, 'w') as out_file:
             content = file.file.read().decode()
             out_file.write(content)
-        return result
+        return TemplateBase(id=templates[result.id].id, name=templates[result.id].name)
     return JSONResponse(status_code=400, content={"message": "Недопустимый тип файла"})
 
 
