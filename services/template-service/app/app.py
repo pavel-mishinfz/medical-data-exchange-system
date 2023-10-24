@@ -6,13 +6,36 @@ from .schemas import Template, TemplateBase
 from fastapi import FastAPI, UploadFile
 from fastapi.responses import JSONResponse, HTMLResponse
 
+description = """
+Содержит _название шаблона_ и _путь к файлу_.
 
-app = FastAPI(title='Template Service')
+Предназначен для: 
+
+* **создания** 
+* **получения**
+* **обновления**
+* **удаления**
+
+шаблонов страниц медицинской карты или медицинских документов.
+
+Также имеется возможность получить _все шаблоны_. 
+"""
+
+tags_metadata = [
+    {
+        "name": "templates",
+        "description": "Operations with templates.",
+    }
+]
+
+app = FastAPI(title='Template Service',
+              description=description,
+              openapi_tags=tags_metadata)
 templates: typing.Dict[int, Template] = {}
 path_to_storage = 'C:/Medical-Data-Exchange-System/storage/'
 
 
-@app.post('/templates', summary='Добавляет шаблон в базу')
+@app.post('/templates', summary='Добавляет шаблон в базу', tags=["templates"])
 def add_template(name: str, file: UploadFile):
     content_type = file.content_type
     if content_type == "text/html":
@@ -36,19 +59,19 @@ def generate_html_response(template_id):
     return HTMLResponse(content=html_content)
 
 
-@app.get('/templates/{template_id}', summary='Возвращает шаблон')
+@app.get('/templates/{template_id}', summary='Возвращает шаблон', tags=["templates"])
 def get_template(template_id: int):
     if template_id in templates:
         return generate_html_response(template_id)
     return JSONResponse(status_code=404, content={"message": "Шаблон не найден"})
 
 
-@app.get('/templates', summary='Возвращает список всех шаблонов')
+@app.get('/templates', summary='Возвращает список всех шаблонов', tags=["templates"])
 def get_template():
     return [TemplateBase(id=v.id, name=v.name) for k, v in templates.items()]
 
 
-@app.put('/templates/{template_id}', summary='Обновляет шаблон')
+@app.put('/templates/{template_id}', summary='Обновляет шаблон', tags=["templates"])
 def update_template(template_id: int, name: str, file: UploadFile):
     if template_id in templates:
         content_type = file.content_type
@@ -67,7 +90,7 @@ def update_template(template_id: int, name: str, file: UploadFile):
     return JSONResponse(status_code=404, content={"message": "Шаблон не найден"})
 
 
-@app.delete('/templates/{template_id}', summary='Удаляет шаблон из базы')
+@app.delete('/templates/{template_id}', summary='Удаляет шаблон из базы', tags=["templates"])
 def delete_template(template_id: int):
     if template_id in templates:
         os.remove(templates[template_id].path)
