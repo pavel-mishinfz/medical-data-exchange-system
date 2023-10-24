@@ -1,3 +1,3 @@
-from .template import Template
+from .template import Template, TemplateBase
 
-__all__ = [Template]
+__all__ = [Template, TemplateBase]
