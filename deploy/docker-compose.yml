@@ -1,0 +1,35 @@
+version: "2.0"
+volumes:
+  mongo-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./mongo/data
+  postgresql-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./postgresql/data
+services:
+  postgresql:
+    image: postgres:14.9-alpine3.18
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data 
+    environment:
+      POSTGRES_PASSWORD: 1111
+      POSTGRES_USER: psgadmin
+      POSTGRES_DB: medical-system
+      PGDATA: /var/lib/postgresql/data/db-files/
+    ports:
+      - "5432:5432"
+  mongo:
+    image: mongo:7.0
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=medical-system
