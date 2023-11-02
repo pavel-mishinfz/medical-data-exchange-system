@@ -32,7 +32,7 @@ def get_templates(db: Session) -> List[models.Template]:
 
 def get_template(
         db: Session, template_id: int
-    ) -> models.Template:
+    ) -> models.Template | None:
     """
     Возвращает конкретный шаблон
     """
