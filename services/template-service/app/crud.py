@@ -1,19 +1,19 @@
 import os
 import uuid
-from typing import List
 
 from sqlalchemy.orm import Session
 from .database import models
+from .schemas import TemplateIn
 
 
 def create_template(
-        db: Session, name: str, path_to_storage: str
+        db: Session, template_in: TemplateIn, path_to_storage: str
     ) -> models.Template:
     """
     Создает новый шаблон в БД
     """
     db_template = models.Template(
-        name=name,
+        name=template_in.name,
         path=os.path.join(path_to_storage, str(uuid.uuid4()) + '.html')
     )
 
@@ -23,7 +23,7 @@ def create_template(
     return db_template
 
 
-def get_templates(db: Session) -> List[models.Template]:
+def get_templates(db: Session) -> list[models.Template]:
     """
     Возвращает все шаблоны
     """
@@ -42,14 +42,14 @@ def get_template(
 
 
 def update_template(
-        db: Session, template_id: int, name: str
+        db: Session, template_id: int, template_in: TemplateIn
     ) -> models.Template | None:
     """
     Обновляет информацию о шаблоне
     """
     result = db.query(models.Template) \
         .filter(models.Template.id == template_id) \
-        .update({models.Template.name: name})
+        .update({models.Template.name: template_in.name})
     db.commit()
 
     if result == 1:
