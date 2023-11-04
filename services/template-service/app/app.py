@@ -3,8 +3,8 @@ from fastapi import FastAPI, UploadFile, Depends, HTTPException, Body, File
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from .schemas import Template, TemplateIn, TemplateOut
-from .database import Base, engine, SessionLocal
-from . import crud
+from .database import DB_INITIALIZER
+from . import crud, config
 
 
 description = """
@@ -29,7 +29,8 @@ tags_metadata = [
     }
 ]
 
-Base.metadata.create_all(bind=engine)
+cfg: config.Config = config.load_config()
+SessionLocal = DB_INITIALIZER.init_database(cfg.postgres_dsn)
 
 app = FastAPI(title='Template Service',
               description=description,
@@ -44,14 +45,11 @@ def get_db():
         db.close()
 
 
-path_to_storage = 'C:/Medical-Data-Exchange-System/storage/'
-
-
 @app.post('/templates', response_model=TemplateOut, summary='Добавляет шаблон в базу', tags=["templates"])
 def add_template(template_in: TemplateIn = Body(...), file: UploadFile = File(...), db: Session = Depends(get_db)):
     content_type = file.content_type
     if content_type == "text/html":
-        new_template = crud.create_template(db, template_in, path_to_storage)
+        new_template = crud.create_template(db, template_in, cfg.path_to_storage)
         with open(new_template.path, 'w') as out_file:
             content = file.file.read().decode()
             out_file.write(content)

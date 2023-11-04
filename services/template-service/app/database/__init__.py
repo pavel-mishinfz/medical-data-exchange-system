@@ -1,3 +1,3 @@
-from .database import Base, engine, SessionLocal
+from .database import DatabaseInitializer, DB_INITIALIZER
 
-__all__ = [Base, engine, SessionLocal]
+__all__ = [DatabaseInitializer, DB_INITIALIZER]
