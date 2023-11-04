@@ -17,7 +17,7 @@
 # Запуск
 
 ```bash
-uvicorn app:app --reload
+uvicorn app:app --port 5000 --reload
 ```
 
 # Запуск с использование файла конфигурации .env
@@ -27,14 +27,14 @@ uvicorn app:app --reload
 # Запуск с переопределением переменных окружения
 
 ```bash
-uvicorn app:app --reload
+uvicorn app:app --port 5000 --reload
 ```
 
 или
 
 ```bash
-export POSTGRES_DSN=postgresql://psgadmin:1111@localhost/medical-system 
-export PATH_TO_STORAGE=C:/Medical-Data-Exchange-System/storage/ 
+export POSTGRES_DSN=postgresql://psgadmin:1111@192.168.144.1:5432/medical-system 
+export PATH_TO_STORAGE=/home/pavel/medical-data-exchange-system/storage/ 
 uvicorn app:app --reload
 ```
 
@@ -42,11 +42,11 @@ uvicorn app:app --reload
 | Переменная      | Назначение                      | Значение по умолчанию                        |
 |-----------------|---------------------------------|----------------------------------------------|
 | POSTGRES_DSN    | Строка подключения к PostgreSQL | postgresql://user:pass@localhost:5432/foobar | 
-| PATH_TO_STORAGE | Строка пути для хранения файлов | C:/project/storage/                          | 
+| PATH_TO_STORAGE | Строка пути для хранения файлов | /home/pavel/project/storage/                 | 
 
 # Документация
 
-После запуска доступна документация: http://127.0.0.1:8000/docs
+После запуска доступна документация: http://127.0.0.1:5000/docs
 
 # Модули сервиса
 

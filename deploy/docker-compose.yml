@@ -33,3 +33,9 @@ services:
       - "27017:27017"
     environment:
       - MONGO_INITDB_DATABASE=medical-system
+  template-serivce:
+    image: medical-system/template-service:0.1
+    ports:
+      - "5000:5000"
+    environment:
+      POSTGRES_DSN: postgresql://psgadmin:1111@192.168.144.1:5432/medical-system
