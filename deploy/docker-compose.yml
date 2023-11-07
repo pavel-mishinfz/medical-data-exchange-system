@@ -1,17 +1,23 @@
 version: "2.0"
 volumes:
-  mongo-data:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./mongo/data
+  # mongo-data:
+  #   driver: local
+  #   driver_opts:
+  #     o: bind
+  #     type: none
+  #     device: ./mongo/data
   postgresql-data:
     driver: local
     driver_opts:
       o: bind
       type: none
       device: ./postgresql/data
+  template-service-storage:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ../services/template-service/storage
 services:
   postgresql:
     image: postgres:14.9-alpine3.18
@@ -24,18 +30,21 @@ services:
       PGDATA: /var/lib/postgresql/data/db-files/
     ports:
       - "5432:5432"
-  mongo:
-    image: mongo:7.0
-    volumes:
-      - mongo-data:/data/db
-      - ./mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_DATABASE=medical-system
+  # mongo:
+  #   image: mongo:7.0
+  #   volumes:
+  #     - mongo-data:/data/db
+  #     - ./mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+  #   ports:
+  #     - "27017:27017"
+  #   environment:
+  #     - MONGO_INITDB_DATABASE=medical-system
   template-serivce:
     image: medical-system/template-service:0.1
+    volumes:
+      - template-service-storage:/src/storage
     ports:
       - "5000:5000"
     environment:
-      POSTGRES_DSN: postgresql://psgadmin:1111@192.168.144.1:5432/medical-system
+      POSTGRES_DSN: postgresql://psgadmin:1111@127.0.0.1:5432/medical-system
+      PATH_TO_STORAGE: /src/storage
