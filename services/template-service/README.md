@@ -34,7 +34,7 @@ uvicorn app:app --port 5000 --reload
 
 ```bash
 export POSTGRES_DSN=postgresql://psgadmin:1111@192.168.144.1:5432/medical-system 
-export PATH_TO_STORAGE=/home/pavel/medical-data-exchange-system/storage/ 
+export PATH_TO_STORAGE=/src/storage/ 
 uvicorn app:app --reload
 ```
 
@@ -42,11 +42,16 @@ uvicorn app:app --reload
 | Переменная      | Назначение                      | Значение по умолчанию                        |
 |-----------------|---------------------------------|----------------------------------------------|
 | POSTGRES_DSN    | Строка подключения к PostgreSQL | postgresql://user:pass@localhost:5432/foobar | 
-| PATH_TO_STORAGE | Строка пути для хранения файлов | /home/pavel/project/storage/                 | 
+| PATH_TO_STORAGE | Строка пути для хранения файлов | /src/storage/                                | 
 
 # Документация
 
 После запуска доступна документация: http://127.0.0.1:5000/docs
+
+# Сборка образа
+```bash
+docker build -t medical-system/template-service:0.1 .
+```
 
 # Модули сервиса
 

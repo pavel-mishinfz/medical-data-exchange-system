@@ -10,7 +10,7 @@ class Config(BaseSettings):
         alias='POSTGRES_DSN'
     )
     path_to_storage: str = Field(
-        default='/home/pavel/project/storage/',
+        default='/src/storage/',
         env='PATH_TO_STORAGE',
         alias='PATH_TO_STORAGE'
     )

@@ -46,5 +46,5 @@ services:
     ports:
       - "5000:5000"
     environment:
-      POSTGRES_DSN: postgresql://psgadmin:1111@127.0.0.1:5432/medical-system
+      POSTGRES_DSN: postgresql://psgadmin:1111@192.168.144.1:5432/medical-system
       PATH_TO_STORAGE: /src/storage
