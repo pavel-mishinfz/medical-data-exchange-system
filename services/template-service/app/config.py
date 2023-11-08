@@ -3,9 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSett
 from pydantic import PostgresDsn, Field
 
 
-class Config(BaseSettings):
-    # TODO не работает PostgresDsn
-    postgres_dsn: str = Field(
+class Config(BaseSettings): 
+    postgres_dsn: PostgresDsn = Field(
         default='postgresql://user:pass@localhost:5432/foobar',
         env='POSTGRES_DSN',
         alias='POSTGRES_DSN'
