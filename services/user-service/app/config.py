@@ -27,6 +27,18 @@ class Config(BaseSettings):
         alias='VERIFICATION_TOKEN_SECRET'
     )
 
+    own_email: str = Field(
+        default='user@example.com',
+        env='OWN_EMAIL',
+        alias='OWN_EMAIL'
+    )
+
+    own_email_password: str = Field(
+        default='password',
+        env='OWN_EMAIL_PASSWORD',
+        alias='OWN_EMAIL_PASSWORD'
+    )
+
     model_config = SettingsConfigDict(env_file=".env", extra='allow')
 
 

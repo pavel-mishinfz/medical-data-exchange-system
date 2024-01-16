@@ -1,3 +1,6 @@
+from email.mime.text import MIMEText
+from smtplib import SMTP_SSL
+
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +11,14 @@ from .users.database import database
 
 app_config: config.Config = config.load_config()
 
-app = FastAPI()
+tags_metadata = [
+    {
+        "name": "email",
+        "description": "Отправка сообщения пользователю",
+    }
+]
+
+app = FastAPI(openapi_tags=tags_metadata)
 
 users.inject_secrets(
     jwt_secret=app_config.jwt_secret.get_secret_value(),
@@ -81,6 +91,24 @@ async def delete_device(
     if await users.groupcrud.delete_group(session, group_id):
         return group
     return HTTPException(status_code=404, detail="Группа не найдена")
+
+
+@app.post(
+    "/email",
+    summary='Отправляет сообщение для подтверждения аккаунта или сброса пароля',
+    tags=['email']
+    )
+async def send_email(body: schemas.mail.EmailBody):
+    msg = MIMEText(body.message, "html")
+    msg['Subject'] = body.subject
+    msg['From'] = f'<{app_config.own_email}>'
+    msg['To'] = body.to
+
+    with SMTP_SSL("smtp.gmail.com", port=465) as server:
+        server.login(app_config.own_email, app_config.own_email_password)
+        server.send_message(msg)
+        server.quit()
+        return {"message": "Сообщение успешно отправлено"}
 
 
 @app.on_event("startup")

@@ -1,3 +1,3 @@
-from . import group, user
+from . import group, user, mail
 
-__all__ = [group, user]
+__all__ = [group, user, mail]
