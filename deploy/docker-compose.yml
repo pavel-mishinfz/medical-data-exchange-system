@@ -48,9 +48,14 @@ services:
     environment:
       POSTGRES_DSN: postgresql://psgadmin:1111@192.168.0.103:5432/medical-system
       PATH_TO_STORAGE: /src/storage
-  medical-card-serivce:
-    image: medical-system/medical-card-service:0.1
+  user-service:
+    image: medical-system/user-service:0.0.1
     ports:
-      - "5001:5001"
+      - "5002:5000"
     environment:
-      POSTGRES_DSN: postgresql://psgadmin:1111@192.168.0.103:5432/medical-system
+      POSTGRES_DSN: postgresql+asyncpg://psgadmin:1111@192.168.0.103:5432/medical-system
+      JWT_SECRET: jwt_secret
+      RESET_PASSWORD_TOKEN_SECRET: reset_password_token_secret
+      VERIFICATION_TOKEN_SECRET: verification_token_secret
+      OWN_EMAIL: mishinstd@gmail.com
+      OWN_EMAIL_PASSWORD: qlku rnry ditn wzlj
