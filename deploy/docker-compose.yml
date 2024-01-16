@@ -51,6 +51,6 @@ services:
   medical-card-serivce:
     image: medical-system/medical-card-service:0.1
     ports:
-      - "5001:5001"
+      - "5001:5000"
     environment:
       POSTGRES_DSN: postgresql://psgadmin:1111@192.168.0.103:5432/medical-system
