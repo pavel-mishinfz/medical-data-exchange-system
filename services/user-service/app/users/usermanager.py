@@ -1,14 +1,28 @@
 import uuid
-from typing import Optional
+from typing import Optional, Union
 
 from fastapi import Depends, Request
-from fastapi_users import BaseUserManager, UUIDIDMixin
+from fastapi_users import BaseUserManager, UUIDIDMixin, InvalidPasswordException
 
 from .database import database, models
-from . import secretprovider
+from . import secretprovider, schemas
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[models.User, uuid.UUID]):
+
+    async def validate_password(
+        self,
+        password: str,
+        user: Union[schemas.user.UserCreate, models.User],
+    ) -> None:
+        if len(password) < 8:
+            raise InvalidPasswordException(
+                reason="Пароль должен содержать не менее 8 символов"
+            )
+        if user.email in password:
+            raise InvalidPasswordException(
+                reason="Пароль не должен содержать e-mail"
+            )
 
     async def on_after_register(
             self, user: models.User, request: Optional[Request] = None
