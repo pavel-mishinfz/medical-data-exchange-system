@@ -3,7 +3,7 @@ import uuid
 from fastapi import Depends, FastAPI
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import (AuthenticationBackend,
-                                          CookieTransport,
+                                          BearerTransport,
                                           JWTStrategy)
 
 from . import secretprovider, usermanager
@@ -12,7 +12,8 @@ from . import schemas
 from typing import Any
 from fastapi_users.jwt import generate_jwt
 
-cookie_transport = CookieTransport(cookie_max_age=3600)
+
+bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
 
 
 class CustomJWTStrategy(JWTStrategy):
@@ -31,7 +32,7 @@ def get_jwt_strategy(
 
 auth_backend = AuthenticationBackend(
     name="jwt",
-    transport=cookie_transport,
+    transport=bearer_transport,
     get_strategy=get_jwt_strategy,
 )
 
@@ -43,7 +44,7 @@ fastapi_users = FastAPIUsers[models.User, uuid.UUID](
 
 def include_routers(app: FastAPI):
     app.include_router(
-        fastapi_users.get_auth_router(auth_backend),
+        fastapi_users.get_auth_router(auth_backend, requires_verification=True),
         prefix="/auth/jwt",
         tags=["auth"]
     )
