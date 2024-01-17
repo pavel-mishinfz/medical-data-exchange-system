@@ -30,6 +30,12 @@ services:
       PGDATA: /var/lib/postgresql/data/db-files/
     ports:
       - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-d", "medical-system" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
   # mongo:
   #   image: mongo:7.0
   #   volumes:
@@ -53,9 +59,12 @@ services:
     ports:
       - "5002:5000"
     environment:
-      POSTGRES_DSN: postgresql+asyncpg://psgadmin:1111@192.168.0.103:5432/medical-system
-      JWT_SECRET: jwt_secret
-      RESET_PASSWORD_TOKEN_SECRET: reset_password_token_secret
-      VERIFICATION_TOKEN_SECRET: verification_token_secret
-      OWN_EMAIL: mishinstd@gmail.com
-      OWN_EMAIL_PASSWORD: qlku rnry ditn wzlj
+      POSTGRES_DSN_ASYNC: ${POSTGRES_DSN_ASYNC}
+      JWT_SECRET: ${JWT_SECRET}
+      RESET_PASSWORD_TOKEN_SECRET: ${RESET_PASSWORD_TOKEN_SECRET}
+      VERIFICATION_TOKEN_SECRET: ${VERIFICATION_TOKEN_SECRET}
+      OWN_EMAIL: ${OWN_EMAIL}
+      OWN_EMAIL_PASSWORD: ${OWN_EMAIL_PASSWORD}
+    depends_on:
+      postgresql:
+        condition: service_healthy

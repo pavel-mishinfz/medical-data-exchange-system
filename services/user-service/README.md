@@ -30,7 +30,7 @@ uvicorn app:app --port 5000 --reload
 # Конфигурация
 | Переменная                  | Назначение                                                         | Значение по-умолчанию                        |
 |-----------------------------|--------------------------------------------------------------------|----------------------------------------------|
-| POSTGRES_DSN                | Строка подключения к PostgreSQL                                    | postgresql://user:pass@localhost:5432/foobar |
+| POSTGRES_DSN_ASYNC          | Строка подключения к PostgreSQL                                    | postgresql://user:pass@localhost:5432/foobar |
 | JWT_SECRET                  | Парольная фраза, используемая для кодирования jwt-токена           | jwt_secret                                   | 
 | RESET_PASSWORD_TOKEN_SECRET | Парольная фраза, используемая для кодирования токена сброса пароля | reset_password_token_secret                  | 
 | VERIFICATION_TOKEN_SECRET   | Парольная фраза, используемая для кодирования токена верификации   | verification_token_secret                    |

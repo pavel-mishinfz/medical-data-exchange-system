@@ -144,5 +144,5 @@ async def send_email(body: schemas.mail.EmailBody):
 @app.on_event("startup")
 async def on_startup():
     await database.DB_INITIALIZER.init_database(
-        app_config.postgres_dsn.unicode_string()
+        app_config.postgres_dsn_async.unicode_string()
     )
