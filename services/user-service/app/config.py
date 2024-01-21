@@ -1,5 +1,5 @@
 from typing import Tuple, Type
-from pydantic import Field, PostgresDsn, SecretStr
+from pydantic import Field, PostgresDsn, SecretStr, FilePath
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource
 
 
@@ -38,6 +38,12 @@ class Config(BaseSettings):
         default='password',
         env='OWN_EMAIL_PASSWORD',
         alias='OWN_EMAIL_PASSWORD'
+    )
+
+    default_groups_config_path: FilePath = Field(
+        default='default-groups.json',
+        env='DEFAULT_GROUPS_CONFIG_PATH',
+        alias='DEFAULT_GROUPS_CONFIG_PATH'
     )
 
     model_config = SettingsConfigDict(env_file=".env", extra='allow')

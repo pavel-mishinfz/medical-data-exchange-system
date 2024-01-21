@@ -1,3 +1,4 @@
+import json
 from email.mime.text import MIMEText
 from smtplib import SMTP_SSL
 
@@ -146,3 +147,13 @@ async def on_startup():
     await database.DB_INITIALIZER.init_database(
         app_config.postgres_dsn_async.unicode_string()
     )
+
+    groups = []
+    with open(app_config.default_groups_config_path) as f:
+        groups = json.load(f)
+
+    async for session in database.get_async_session():
+        for group in groups:
+            await users.groupcrud.upsert_group(
+                session, schemas.group.GroupUpsert(**group)
+            )
