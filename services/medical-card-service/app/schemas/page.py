@@ -5,8 +5,6 @@ class PageBase(BaseModel):
     """
     Базовая модель страницы медкарты
     """
-    id_card: int = Field(title='Идентификатор медкарты')
-    id_template: int = Field(title='Идентификатор шаблона')
     data: dict = Field(title='Данные страницы')
 
     class ConfigDict:

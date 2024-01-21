@@ -1,16 +1,16 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from .database import models
 from .schemas import PageIn, CardIn
 
 
 def create_card(
-        db: Session, card_in: CardIn
+        db: Session, user_id: int, card_in: CardIn
     ) -> models.Card:
     """
     Создает новую медкарту в БД
     """
     db_card = models.Card(
-        id_user=card_in.id_user,
+        id_user=user_id,
         user_name=card_in.user_name,
     )
 
@@ -27,6 +27,7 @@ def get_card(
     Возвращает медкарту
     """
     return db.query(models.Card) \
+        .options(joinedload(models.Card.pages)) \
         .filter(models.Card.id == card_id) \
         .first()
 
@@ -54,25 +55,24 @@ def delete_card(
     Удаляет информацию о медкарте
     """
     deleted_card = get_card(db, card_id)
-    result = db.query(models.Card) \
-            .filter(models.Card.id == card_id) \
-            .delete()
+    if deleted_card is None:
+        return None
+
+    db.delete(deleted_card)
     db.commit()
 
-    if result == 1:
-        return deleted_card
-    return None
+    return deleted_card
 
 
 def create_page(
-        db: Session, page_in: PageIn
+        db: Session, template_id: int, card_id: int, page_in: PageIn
     ) -> models.Page:
     """
     Создает новую страницу для медкарты в БД
     """
     db_page = models.Page(
-        id_card=page_in.id_card,
-        id_template=page_in.id_template,
+        id_template=template_id,
+        id_card=card_id,
         data=page_in.data
     )
 
@@ -92,17 +92,6 @@ def get_page(
     return db.query(models.Page) \
             .filter(models.Page.id == page_id) \
             .first()
-
-
-def get_pages(
-        db: Session, card_id: int
-    ) -> list[models.Page] | None:
-    """
-    Возвращает все старницы медкарты
-    """
-    return db.query(models.Page) \
-            .filter(models.Page.id_card == card_id) \
-            .all()
 
 
 def update_page(
@@ -136,22 +125,4 @@ def delete_page(
 
     if result == 1:
         return deleted_page
-    return None
-
-
-def delete_pages(
-        db: Session, card_id: int
-    ) -> list[models.Page] | None:
-    """
-    Удаляет информацию о всех страницах
-    """
-    deleted_pages = get_pages(db, card_id)
-
-    result = db.query(models.Page) \
-        .filter(models.Page.id_card == card_id) \
-        .delete()
-    db.commit()
-
-    if result == 1:
-        return deleted_pages
     return None

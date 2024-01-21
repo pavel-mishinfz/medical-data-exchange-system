@@ -5,7 +5,6 @@ class CardBase(BaseModel):
     """
     Базовая модель медкарты
     """
-    id_user: int = Field(title='Идентификатор пользователя')
     user_name: str = Field(title='ФИО пациента')
 
     class ConfigDict:

@@ -49,18 +49,17 @@ def get_db():
         db.close()
 
 
-@app.post('/cards', response_model=Card, summary='Добавляет медкарту в базу', tags=["cards"])
-def add_card(card_in: CardIn, db: Session = Depends(get_db)):
-    return crud.create_card(db, card_in)
+@app.post('/cards/user/{user_id}', response_model=Card, summary='Добавляет медкарту в базу', tags=["cards"])
+def add_card(user_id: int, card_in: CardIn, db: Session = Depends(get_db)):
+    return crud.create_card(db, user_id, card_in)
 
 
 @app.get('/cards/{card_id}', summary='Возвращает медкарту', tags=["cards"])
 def get_card(card_id: int, db: Session = Depends(get_db)):
     card = crud.get_card(db, card_id)
-    pages = crud.get_pages(db, card_id)
     if card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найдена")
-    return card, pages
+    return card
 
 
 @app.put('/cards/{card_id}', response_model=Card, summary='Обновляет медкарту', tags=["cards"])
@@ -78,19 +77,24 @@ def update_card(
 @app.delete(
     '/cards/{card_id}',
     summary='Удаляет медкарту из базы',
+    response_model=Card,
     tags=["cards"]
     )
 def delete_card(card_id: int, db: Session = Depends(get_db)):
     deleted_card = crud.delete_card(db, card_id)
-    deleted_pages = crud.delete_pages(db, card_id)
     if deleted_card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найден")
-    return deleted_card, deleted_pages
+    return deleted_card
 
 
-@app.post('/pages', response_model=Page, summary='Добавляет страницу в базу', tags=["pages"])
-def add_page(page_in: PageIn, db: Session = Depends(get_db)):
-    return crud.create_page(db, page_in)
+@app.post(
+    '/pages/template/{template_id}/card/{card_id}',
+    response_model=Page,
+    summary='Добавляет страницу в базу',
+    tags=["pages"]
+    )
+def add_page(template_id: int, card_id: int, page_in: PageIn, db: Session = Depends(get_db)):
+    return crud.create_page(db, template_id, card_id, page_in)
 
 
 @app.get('/pages/{page_id}', response_model=Page, summary='Возвращает страницу', tags=["pages"])
@@ -116,7 +120,7 @@ def update_page(
 @app.delete(
     '/pages/{page_id}',
     response_model=Page,
-    summary='Удаляет медкарту из базы',
+    summary='Удаляет страницу из базы',
     tags=["pages"]
     )
 def delete_page(page_id: int, db: Session = Depends(get_db)):
