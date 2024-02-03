@@ -18,6 +18,24 @@ volumes:
       o: bind
       type: none
       device: ../services/template-service/storage
+  user-service-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./user-service
+  policy-enforcement-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./policy-enforcement-service
+#  e2e-test-data:
+#    driver: local
+#    driver_opts:
+#      o: bind
+#      type: none
+#      device: ./e2e_test
 services:
   postgresql:
     image: postgres:14.9-alpine3.18
@@ -30,6 +48,12 @@ services:
       PGDATA: /var/lib/postgresql/data/db-files/
     ports:
       - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
   # mongo:
   #   image: mongo:7.0
   #   volumes:
@@ -39,12 +63,64 @@ services:
   #     - "27017:27017"
   #   environment:
   #     - MONGO_INITDB_DATABASE=medical-system
-  template-serivce:
-    image: medical-system/template-service:0.1
+  template-service:
+    image: medical-system/template-service:0.0.1
     volumes:
       - template-service-storage:/src/storage
     ports:
       - "5000:5000"
     environment:
-      POSTGRES_DSN: postgresql://psgadmin:1111@192.168.144.1:5432/medical-system
-      PATH_TO_STORAGE: /src/storage
+      POSTGRES_DSN: ${POSTGRES_DSN}
+      PATH_TO_STORAGE: ${PATH_TO_STORAGE}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+  medical-card-service:
+    image: medical-system/medical-card-service:0.0.1
+    ports:
+      - "5001:5000"
+    environment:
+      POSTGRES_DSN: ${POSTGRES_DSN}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+  user-service:
+    image: medical-system/user-service:0.0.1
+    ports:
+      - "5002:5000"
+    environment:
+      POSTGRES_DSN_ASYNC: ${POSTGRES_DSN_ASYNC}
+      JWT_SECRET: ${JWT_SECRET}
+      RESET_PASSWORD_TOKEN_SECRET: ${RESET_PASSWORD_TOKEN_SECRET}
+      VERIFICATION_TOKEN_SECRET: ${VERIFICATION_TOKEN_SECRET}
+      OWN_EMAIL: ${OWN_EMAIL}
+      OWN_EMAIL_PASSWORD: ${OWN_EMAIL_PASSWORD}
+      DEFAULT_GROUPS_CONFIG_PATH: ${DEFAULT_GROUPS_CONFIG_PATH}
+    volumes:
+      - user-service-data:/mnt/
+    depends_on:
+      postgresql:
+        condition: service_healthy
+  policy-enforcement-service:
+    image: medical-system/policy-enforcement-service:0.0.1
+    ports:
+      - "5003:5000"
+    volumes:
+      - policy-enforcement-data:/mnt/
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      POLICIES_CONFIG_PATH: ${POLICIES_CONFIG_PATH}
+    depends_on:
+      - template-service
+      - medical-card-service
+      - user-service
+#  test-runner:
+#    image: python:3.11
+#    volumes:
+#      - e2e-test-data:/mnt/
+#    command: >
+#      bash -c "pip install --upgrade pip
+#      && pip install requests pydantic sqlalchemy psycopg2-binary
+#      && python -m unittest /mnt/test.py"
+#    depends_on:
+#      - policy-enforcement-service
