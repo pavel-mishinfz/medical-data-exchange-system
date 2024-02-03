@@ -1,0 +1,71 @@
+services:
+    - name: template-service
+      entrypoint: http://template-service:5000/
+      inject_token_in_swagger: True
+    - name: medical-card-service
+      entrypoint: http://medical-card-service:5000/
+      inject_token_in_swagger: True
+    - name: user-service
+      entrypoint: http://user-service:5000/
+      inject_token_in_swagger: True
+model: |
+    [request_definition]
+    r = sub, obj, act
+    
+    [policy_definition]
+    p = sub_rule, obj, act
+    
+    [policy_effect]
+    e = some(where (p.eft == allow))
+    
+    [matchers]
+    m = eval(p.sub_rule) && keyMatch(r.obj, p.obj) && regexMatch(r.act, p.act)
+policies:
+    - service: template-service
+      rule: r.sub.group_id < 3
+      resource: /templates*
+      methods: (GET)|(POST)|(PUT)|(DELETE)
+    - service: user-service
+      rule: r.sub.group_id == 1
+      resource: /groups*
+      methods: (GET)|(POST)|(PUT)|(DELETE)
+    - service: user-service
+      resource: /auth/*
+      methods: POST
+      white_list: true
+    - service: user-service
+      rule: r.sub.group_id == 1
+      resource: /users/*
+      methods: (GET)|(POST)|(PUT)|(DELETE)
+    - service: user-service
+      rule: r.sub.group_id == 2
+      resource: /users/*
+      methods: GET
+    - service: user-service
+      rule: r.sub.group_id == 2
+      resource: /users/me
+      methods: PUT
+    - service: user-service
+      rule: r.sub.group_id == 3
+      resource: /users/me
+      methods: (GET)|(PUT)
+    - service: medical-card-service
+      rule: r.sub.group_id == 1
+      resource: /cards*
+      methods: (GET)|(POST)|(PUT)|(DELETE)
+    - service: medical-card-service
+      rule: r.sub.group_id == 2
+      resource: /cards*
+      methods: (GET)|(PUT)
+    - service: medical-card-service
+      rule: r.sub.group_id == 3
+      resource: /cards*
+      methods: GET
+    - service: medical-card-service
+      rule: r.sub.group_id < 3
+      resource: /pages*
+      methods: (GET)|(POST)|(PUT)|(DELETE)
+    - service: medical-card-service
+      rule: r.sub.group_id == 3
+      resource: /pages*
+      methods: GET
