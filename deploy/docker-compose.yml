@@ -48,3 +48,9 @@ services:
     environment:
       POSTGRES_DSN: postgresql://psgadmin:1111@192.168.144.1:5432/medical-system
       PATH_TO_STORAGE: /src/storage
+  health-diary-service:
+    image: medical-system/health-diary-service:0.0.1
+    ports:
+      - "5004:5000"
+    environment:
+      POSTGRES_DSN: postgresql://psgadmin:1111@172.18.0.4:5432/medical-system
