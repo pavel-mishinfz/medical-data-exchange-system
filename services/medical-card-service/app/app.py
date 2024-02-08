@@ -1,6 +1,8 @@
-from fastapi import FastAPI, UploadFile, Depends, HTTPException, Body
+import uuid
+
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .schemas import Card, CardIn, Page, PageIn
+from .schemas import Card, CardIn, Page, PageIn, PageShortOut
 from .database import DB_INITIALIZER
 from . import crud, config
 
@@ -50,16 +52,16 @@ def get_db():
 
 
 @app.post('/cards/user/{user_id}', response_model=Card, summary='Добавляет медкарту в базу', tags=["cards"])
-def add_card(user_id: int, card_in: CardIn, db: Session = Depends(get_db)):
+def add_card(user_id: uuid.UUID, card_in: CardIn, db: Session = Depends(get_db)):
     return crud.create_card(db, user_id, card_in)
 
 
-@app.get('/cards/{card_id}', summary='Возвращает медкарту', tags=["cards"])
+@app.get('/cards/{card_id}', response_model=tuple[Card, list[PageShortOut]], summary='Возвращает медкарту', tags=["cards"])
 def get_card(card_id: int, db: Session = Depends(get_db)):
-    card = crud.get_card(db, card_id)
+    card, pages = crud.get_card_with_pages(db, card_id)
     if card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найдена")
-    return card
+    return card, pages
 
 
 @app.put('/cards/{card_id}', response_model=Card, summary='Обновляет медкарту', tags=["cards"])
@@ -88,13 +90,13 @@ def delete_card(card_id: int, db: Session = Depends(get_db)):
 
 
 @app.post(
-    '/pages/template/{template_id}/card/{card_id}',
+    '/pages/card/{card_id}/template/{template_id}',
     response_model=Page,
     summary='Добавляет страницу в базу',
     tags=["pages"]
     )
-def add_page(template_id: int, card_id: int, page_in: PageIn, db: Session = Depends(get_db)):
-    return crud.create_page(db, template_id, card_id, page_in)
+def add_page(card_id: int, template_id: int, page_in: PageIn, db: Session = Depends(get_db)):
+    return crud.create_page(db, card_id, template_id, page_in)
 
 
 @app.get('/pages/{page_id}', response_model=Page, summary='Возвращает страницу', tags=["pages"])
