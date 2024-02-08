@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -22,3 +24,13 @@ class Page(PageBase):
     Модель используемая при запросе информации о странице
     """
     id: int = Field(title='Идентификатор страницы')
+    id_template: int = Field(title='Идентификатор шаблона страницы')
+    create_date: datetime = Field(title='Дата создания страницы')
+
+
+class PageShortOut(BaseModel):
+
+    id: int = Field(title='Идентификатор страницы')
+
+    class ConfigDict:
+        from_attribute = True
