@@ -1,10 +1,13 @@
+import uuid
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session, joinedload
 from .database import models
 from .schemas import PageIn, CardIn
 
 
 def create_card(
-        db: Session, user_id: int, card_in: CardIn
+        db: Session, user_id: uuid.UUID, card_in: CardIn
     ) -> models.Card:
     """
     Создает новую медкарту в БД
@@ -12,6 +15,7 @@ def create_card(
     db_card = models.Card(
         id_user=user_id,
         user_name=card_in.user_name,
+        create_date=datetime.now(timezone.utc)
     )
 
     db.add(db_card)
@@ -27,9 +31,22 @@ def get_card(
     Возвращает медкарту
     """
     return db.query(models.Card) \
-        .options(joinedload(models.Card.pages)) \
         .filter(models.Card.id == card_id) \
         .first()
+
+
+def get_card_with_pages(
+        db: Session, card_id: int
+    ) -> tuple[models.Card | None, list[models.Page] | None]:
+    """
+    Возвращает медкарту
+    """
+    card = get_card(db, card_id)
+    pages = db.query(models.Page) \
+        .order_by(models.Page.id) \
+        .filter(models.Page.id_card == card_id) \
+        .all()
+    return card, pages
 
 
 def update_card(
@@ -65,15 +82,16 @@ def delete_card(
 
 
 def create_page(
-        db: Session, template_id: int, card_id: int, page_in: PageIn
+        db: Session, card_id: int, template_id: int, page_in: PageIn
     ) -> models.Page:
     """
     Создает новую страницу для медкарты в БД
     """
     db_page = models.Page(
-        id_template=template_id,
         id_card=card_id,
-        data=page_in.data
+        id_template=template_id,
+        data=page_in.data,
+        create_date=datetime.now(timezone.utc)
     )
 
     db.add(db_page)
