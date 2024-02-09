@@ -1,3 +1,3 @@
-from .database import DatabaseInitializer, DB_INITIALIZER
+from .database import DatabaseInitializer, DB_INITIALIZER, get_async_session
 
-__all__ = [DatabaseInitializer, DB_INITIALIZER]
+__all__ = [DatabaseInitializer, DB_INITIALIZER, get_async_session]

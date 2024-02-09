@@ -4,10 +4,10 @@ from pydantic import PostgresDsn, Field
 
 
 class Config(BaseSettings):
-    postgres_dsn: PostgresDsn = Field(
-        default='postgresql://user:pass@localhost:5432/foobar',
-        env='POSTGRES_DSN',
-        alias='POSTGRES_DSN'
+    postgres_dsn_async: PostgresDsn = Field(
+        default='postgresql+asyncpg://user:pass@localhost:5432/foobar',
+        env='POSTGRES_DSN_ASYNC',
+        alias='POSTGRES_DSN_ASYNC'
     )
 
     model_config = SettingsConfigDict(env_file=".env")
