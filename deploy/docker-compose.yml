@@ -101,10 +101,19 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
+  health-diary-service:
+    image: medical-system/health-diary-service:0.0.1
+    ports:
+      - "5003:5000"
+    environment:
+      POSTGRES_DSN_ASYNC: ${POSTGRES_DSN_ASYNC}
+    depends_on:
+      postgresql:
+        condition: service_healthy
   policy-enforcement-service:
     image: medical-system/policy-enforcement-service:0.0.1
     ports:
-      - "5003:5000"
+      - "5004:5000"
     volumes:
       - policy-enforcement-data:/mnt/
     environment:
@@ -114,6 +123,7 @@ services:
       - template-service
       - medical-card-service
       - user-service
+      - health-diary-service
 #  test-runner:
 #    image: python:3.11
 #    volumes:
