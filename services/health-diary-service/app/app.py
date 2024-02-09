@@ -1,6 +1,8 @@
+import uuid
+
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .schemas import Diary, DiaryIn, PageDiary, PageDiaryIn
+from .schemas import PageDiary, PageDiaryIn
 from .database import DB_INITIALIZER
 from . import crud, config
 
@@ -10,10 +12,6 @@ tags_metadata = [
     {
         "name": "diaries",
         "description": "Операции с дневниками здоровья",
-    },
-    {
-        "name": "pages-diary",
-        "description": "Операции со страницами дневника",
     }
 ]
 
@@ -34,71 +32,64 @@ def get_db():
 
 
 @app.post(
-    '/diaries/user/{user_id}', response_model=Diary, summary='Добавляет дневник здоровья в базу', tags=["diaries"]
+    '/diaries/user/{user_id}',
+    response_model=PageDiary,
+    summary='Добавляет страницу дневника здоровья в базу',
+    tags=["diaries"]
 )
-def add_diary(user_id: int, db: Session = Depends(get_db)):
-    return crud.create_diary(db, user_id)
+def add_diary(user_id: uuid.UUID, page_diary_in: PageDiaryIn, db: Session = Depends(get_db)):
+    return crud.create_page_diary(db, user_id, page_diary_in)
 
 
-@app.get('/diaries/{diary_id}', summary='Возвращает дневник', tags=["diaries"])
-def get_diary(diary_id: int, db: Session = Depends(get_db)):
-    diary = crud.get_diary(db, diary_id)
+@app.get(
+    '/diaries/{page_diary_id}',
+    response_model=PageDiary,
+    summary='Возвращает страницу дневника',
+    tags=["diaries"]
+)
+def get_diary(page_diary_id: int, db: Session = Depends(get_db)):
+    page_diary = crud.get_page_diary(db, page_diary_id)
+    if page_diary is None:
+        raise HTTPException(status_code=404, detail="Страница не найдена")
+    return page_diary
+
+
+@app.get(
+    '/diaries/user/{user_id}',
+    response_model=list[PageDiary],
+    summary='Возвращает все страницы дневника пользователя',
+    tags=["diaries"]
+)
+def get_diary(user_id: uuid.UUID, db: Session = Depends(get_db)):
+    return crud.get_page_diary_list(db, user_id)
+
+
+@app.put(
+    '/diaries/{page_diary_id}',
+    response_model=PageDiary,
+    summary='Обновляет страницу дневника',
+    tags=["diaries"]
+)
+def update_page(
+        page_diary_id: int,
+        page_diary_in: PageDiaryIn,
+        db: Session = Depends(get_db)
+):
+    diary = crud.update_page_diary(db, page_diary_id, page_diary_in)
     if diary is None:
-        raise HTTPException(status_code=404, detail="Дневник не найден")
+        raise HTTPException(status_code=404, detail="Страница не найдена")
     return diary
 
 
 @app.delete(
-    '/diaries/{diary_id}',
+    '/diaries/{page_diary_id}',
     summary='Удаляет дневник из базы',
-    response_model=Diary,
+    response_model=PageDiary,
     tags=["diaries"]
 )
-def delete_diary(diary_id: int, db: Session = Depends(get_db)):
-    deleted_diary = crud.delete_diary(db, diary_id)
-    if deleted_diary is None:
-        raise HTTPException(status_code=404, detail="Дневник не найден")
-    return deleted_diary
-
-
-@app.post(
-    '/pages/{diary_id}',
-    response_model=PageDiary,
-    summary='Добавляет страницу в базу',
-    tags=["pages-diary"]
-)
-def add_page(diary_id: int, page_in: PageDiaryIn, db: Session = Depends(get_db)):
-    return crud.create_page(db, diary_id, page_in)
-
-
-@app.get('/pages/{page_id}', response_model=PageDiary, summary='Возвращает страницу', tags=["pages-diary"])
-def get_page(page_id: int, db: Session = Depends(get_db)):
-    page = crud.get_page(db, page_id)
-    if page is None:
+def delete_diary(page_diary_id: int, db: Session = Depends(get_db)):
+    deleted_page_diary = crud.delete_page_diary(db, page_diary_id)
+    if deleted_page_diary is None:
         raise HTTPException(status_code=404, detail="Страница не найдена")
-    return page
+    return deleted_page_diary
 
-
-@app.put('/pages/{page_id}', response_model=PageDiary, summary='Обновляет страницу', tags=["pages-diary"])
-def update_page(
-        page_id: int,
-        page_in: PageDiaryIn,
-        db: Session = Depends(get_db)
-):
-    page = crud.update_page(db, page_id, page_in)
-    if page is not None:
-        return page
-    raise HTTPException(status_code=404, detail="Страница не найдена")
-
-
-@app.delete(
-    '/pages/{page_id}',
-    response_model=PageDiary,
-    summary='Удаляет страницу из базы',
-    tags=["pages-diary"]
-)
-def delete_page(page_id: int, db: Session = Depends(get_db)):
-    deleted_page = crud.delete_page(db, page_id)
-    if deleted_page is None:
-        raise HTTPException(status_code=404, detail="Страница не найден")
-    return deleted_page

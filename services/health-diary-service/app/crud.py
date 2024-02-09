@@ -1,111 +1,79 @@
-from sqlalchemy.orm import Session, joinedload
+import uuid
+from datetime import datetime, timezone
+
+from sqlalchemy.orm import Session
 from .database import models
 from .schemas import PageDiaryIn
 
 
-def create_diary(
-        db: Session, user_id: int
-    ) -> models.Diary:
+def create_page_diary(
+        db: Session, user_id: uuid.UUID, page_diary_in: PageDiaryIn
+    ) -> models.PageDiary:
     """
-    Создает новый дневник здоровья в БД
+    Создает новую страницу дневника здоровья в БД
     """
-    db_diary = models.Diary(
+    db_page_diary = models.PageDiary(
         id_user=user_id,
+        pulse=page_diary_in.pulse,
+        comment=page_diary_in.comment,
+        create_date=datetime.now(timezone.utc)
     )
 
-    db.add(db_diary)
+    db.add(db_page_diary)
     db.commit()
-    db.refresh(db_diary)
-    return db_diary
+    db.refresh(db_page_diary)
+    return db_page_diary
 
 
-def get_diary(
-        db: Session, diary_id: int
-    ) -> models.Diary | None:
+def get_page_diary(
+        db: Session, page_diary_id: int
+    ) -> models.PageDiary | None:
     """
-    Возвращает дневник
+    Возвращает страницу дневника
     """
-    return db.query(models.Diary) \
-        .options(joinedload(models.Diary.pages)) \
-        .filter(models.Diary.id == diary_id) \
+    return db.query(models.PageDiary) \
+        .filter(models.PageDiary.id == page_diary_id) \
         .first()
 
 
-def delete_diary(
-        db: Session, diary_id: int
-    ) -> models.Diary | None:
+def get_page_diary_list(
+        db: Session, user_id: uuid.UUID
+    ) -> list[models.PageDiary] | None:
     """
-    Удаляет информацию о дневнике
-    """
-    deleted_diary = get_diary(db, diary_id)
-    if deleted_diary is None:
-        return None
-
-    db.delete(deleted_diary)
-    db.commit()
-
-    return deleted_diary
-
-
-def create_page(
-        db: Session, diary_id: int, page_in: PageDiaryIn
-    ) -> models.PageDiary:
-    """
-    Создает новую страницу для дневника в БД
-    """
-    db_page = models.PageDiary(
-        id_diary=diary_id,
-        pulse=page_in.pulse,
-        comment=page_in.comment
-    )
-
-    db.add(db_page)
-    db.commit()
-    db.refresh(db_page)
-
-    return db_page
-
-
-def get_page(
-        db: Session, page_id: int
-    ) -> models.PageDiary | None:
-    """
-    Возвращает конкретную старницу дневника
+    Возвращает все страницы дневника пользователя
     """
     return db.query(models.PageDiary) \
-            .filter(models.PageDiary.id == page_id) \
-            .first()
+        .filter(models.PageDiary.id_user == user_id) \
+        .all()
 
 
-def update_page(
-        db: Session, page_id: int, page_in: PageDiaryIn
+def update_page_diary(
+        db: Session, page_diary_id: int, page_diary_in: PageDiaryIn
     ) -> models.PageDiary | None:
     """
     Обновляет информацию о старнице
     """
     result = db.query(models.PageDiary) \
-        .filter(models.PageDiary.id == page_id) \
-        .update(page_in.model_dump())
+        .filter(models.PageDiary.id == page_diary_id) \
+        .update(page_diary_in.model_dump())
     db.commit()
 
     if result == 1:
-        return get_page(db, page_id)
+        return get_page_diary(db, page_diary_id)
     return None
 
 
-def delete_page(
-        db: Session, page_id: int
+def delete_page_diary(
+        db: Session, page_diary_id: int
     ) -> models.PageDiary | None:
     """
-    Удаляет информацию о странице
+    Удаляет информацию о странице дневнике
     """
-    deleted_page = get_page(db, page_id)
+    deleted_page_diary = get_page_diary(db, page_diary_id)
+    if deleted_page_diary is None:
+        return None
 
-    result = db.query(models.PageDiary) \
-        .filter(models.PageDiary.id == page_id) \
-        .delete()
+    db.delete(deleted_page_diary)
     db.commit()
 
-    if result == 1:
-        return deleted_page
-    return None
+    return deleted_page_diary

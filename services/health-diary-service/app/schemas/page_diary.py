@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -16,12 +17,14 @@ class PageDiaryBase(BaseModel):
 
 class PageDiaryIn(PageDiaryBase):
     """
-    Модель для добавления/обновления страницы
+    Модель для добавления/обновления страницы дневника
     """
 
 
 class PageDiary(PageDiaryBase):
     """
-    Модель используемая при запросе информации о странице
+    Модель используемая при запросе информации о странице дневника
     """
-    id: int = Field(title='Идентификатор страницы')
+    id: int = Field(title='Идентификатор дневника')
+    create_date: datetime = Field(title='Дата создания страницы дневника')
+
