@@ -114,7 +114,7 @@ async def update_group(
 
 
 @app.delete("/groups/{group_id}", summary='Удаляет информацию о группе пользователей', tags=['user-groups'])
-async def delete_device(
+async def delete_group(
     group_id: int,
     session: AsyncSession = Depends(database.get_async_session)
     ):
