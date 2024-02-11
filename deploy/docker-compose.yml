@@ -30,6 +30,12 @@ volumes:
       o: bind
       type: none
       device: ./policy-enforcement-service
+  medical-docs-service-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ../services/medical-docs-service/storage
 #  e2e-test-data:
 #    driver: local
 #    driver_opts:
@@ -110,10 +116,22 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
+  medical-docs-service:
+    image: medical-system/medical-docs-service:0.0.1
+    volumes:
+      - medical-docs-service-data:/src/storage
+    ports:
+      - "5004:5000"
+    environment:
+      POSTGRES_DSN: ${POSTGRES_DSN}
+      PATH_TO_STORAGE: ${PATH_TO_STORAGE}
+    depends_on:
+      postgresql:
+        condition: service_healthy
   policy-enforcement-service:
     image: medical-system/policy-enforcement-service:0.0.1
     ports:
-      - "5004:5000"
+      - "5005:5000"
     volumes:
       - policy-enforcement-data:/mnt/
     environment:
@@ -124,6 +142,7 @@ services:
       - medical-card-service
       - user-service
       - health-diary-service
+      - medical-docs-service
 #  test-runner:
 #    image: python:3.11
 #    volumes:
