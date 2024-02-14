@@ -1,4 +1,6 @@
 import os
+import uuid
+
 from fastapi import FastAPI, UploadFile, Depends, HTTPException, Body, File
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
@@ -46,19 +48,21 @@ def get_db():
 
 
 @app.post('/templates', response_model=TemplateOut, summary='Добавляет шаблон в базу', tags=["templates"])
-def add_template(template_in: TemplateIn = Body(...), file: UploadFile = File(...), db: Session = Depends(get_db)):
-    content_type = file.content_type
-    if content_type == "text/html":
-        new_template = crud.create_template(db, template_in, cfg.path_to_storage)
-        with open(new_template.path, 'w') as out_file:
-            content = file.file.read().decode()
-            out_file.write(content)
+def add_template(
+        template_in: TemplateIn = Body(...),
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db)
+):
+    if file.content_type == "text/html":
+        path_to_file = create_path_to_file(cfg.path_to_storage, '.html')
+        new_template = crud.create_template(db, template_in, path_to_file)
+        create_html_file(file, new_template.path_to_file)
         return new_template
     raise HTTPException(status_code=400, detail="Недопустимый тип файла")
 
 
 def generate_html_response(template: Template) -> HTMLResponse:
-    with open(template.path, 'r') as out_file:
+    with open(template.path_to_file, 'r') as out_file:
         html_content = out_file.read()
     return HTMLResponse(content=html_content)
 
@@ -83,18 +87,17 @@ def get_templates(db: Session = Depends(get_db)):
 def update_template(
         template_id: int,
         template_in: TemplateIn,
-        file: UploadFile,
+        file: UploadFile = File(None),
         db: Session = Depends(get_db)
     ):
     template = crud.update_template(db, template_id, template_in)
     if template is not None:
-        content_type = file.content_type
-        if content_type == "text/html":
-            with open(template.path, 'w') as out_file:
-                content = file.file.read().decode()
-                out_file.write(content)
-            return template
-        raise HTTPException(status_code=400, detail="Недопустимый тип файла")
+        if file:
+            if file.content_type == "text/html":
+                create_html_file(file, template.path_to_file)
+            else:
+                raise HTTPException(status_code=400, detail="Недопустимый тип файла")
+        return template
     raise HTTPException(status_code=404, detail="Шаблон не найден")
 
 
@@ -108,5 +111,19 @@ def delete_template(template_id: int, db: Session = Depends(get_db)):
     deleted_template = crud.delete_template(db, template_id)
     if deleted_template is None:
         raise HTTPException(status_code=404, detail="Шаблон не найден")
-    os.remove(deleted_template.path)
+    delete_file_from_storage(deleted_template.path_to_file)
     return deleted_template
+
+
+def create_path_to_file(path_to_storage: str, extension: str):
+    return os.path.join(path_to_storage, str(uuid.uuid4()) + extension)
+
+
+def create_html_file(file: UploadFile, path_to_file: str):
+    with open(path_to_file, 'w') as out_file:
+        content = file.file.read().decode()
+        out_file.write(content)
+
+
+def delete_file_from_storage(path_to_file: str):
+    os.remove(path_to_file)

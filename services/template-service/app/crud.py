@@ -7,14 +7,14 @@ from .schemas import TemplateIn
 
 
 def create_template(
-        db: Session, template_in: TemplateIn, path_to_storage: str
+        db: Session, template_in: TemplateIn, path_to_file: str
     ) -> models.Template:
     """
     Создает новый шаблон в БД
     """
     db_template = models.Template(
         name=template_in.name,
-        path=os.path.join(path_to_storage, str(uuid.uuid4()) + '.html')
+        path_to_file=path_to_file
     )
 
     db.add(db_template)

@@ -24,7 +24,7 @@ class Template(TemplateOut):
     """
     Модель используемая при запросе информации о шаблоне
     """
-    path: str = Field(title='Путь к файлу')
+    path_to_file: str = Field(title='Путь к файлу')
 
 
 class TemplateIn(TemplateBase):
