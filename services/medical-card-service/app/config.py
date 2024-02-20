@@ -1,6 +1,6 @@
 from typing import Tuple, Type
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource
-from pydantic import PostgresDsn, Field
+from pydantic import PostgresDsn, Field, FilePath
 
 
 class Config(BaseSettings):
@@ -8,6 +8,12 @@ class Config(BaseSettings):
         default='postgresql://user:pass@localhost:5432/foobar',
         env='POSTGRES_DSN',
         alias='POSTGRES_DSN'
+    )
+
+    default_data_config_path: FilePath = Field(
+        default='default-data.json',
+        env='DEFAULT_DATA_PATH',
+        alias='DEFAULT_DATA_PATH'
     )
 
     model_config = SettingsConfigDict(env_file=".env")

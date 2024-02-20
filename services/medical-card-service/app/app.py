@@ -1,10 +1,19 @@
+import json
 import uuid
 
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .schemas import Card, CardIn, Page, PageIn, PageShortOut
+from .schemas import (Card,
+                      CardIn,
+                      CardOptional,
+                      Page,
+                      PageIn,
+                      PageShortOut,
+                      FamilyStatus,
+                      Education,
+                      Busyness)
 from .database import DB_INITIALIZER
-from . import crud, config
+from . import crud, config, crud_config
 
 
 description = """
@@ -64,13 +73,13 @@ def get_card(card_id: int, db: Session = Depends(get_db)):
     return card, pages
 
 
-@app.put('/cards/{card_id}', response_model=Card, summary='Обновляет медкарту', tags=["cards"])
+@app.patch('/cards/{card_id}', response_model=Card, summary='Обновляет медкарту', tags=["cards"])
 def update_card(
         card_id: int,
-        card_in: CardIn,
+        card_optional: CardOptional,
         db: Session = Depends(get_db)
     ):
-    card = crud.update_card(db, card_id, card_in)
+    card = crud.update_card(db, card_id, card_optional)
     if card is not None:
         return card
     raise HTTPException(status_code=404, detail="Медкарта не найдена")
@@ -96,7 +105,10 @@ def delete_card(card_id: int, db: Session = Depends(get_db)):
     tags=["pages"]
     )
 def add_page(card_id: int, template_id: int, page_in: PageIn, db: Session = Depends(get_db)):
-    return crud.create_page(db, card_id, template_id, page_in)
+    card = crud.get_card(db, card_id)
+    if card:
+        return crud.create_page(db, card_id, template_id, page_in)
+    raise HTTPException(status_code=404, detail="Медкарта не найден")
 
 
 @app.get('/pages/{page_id}', response_model=Page, summary='Возвращает страницу', tags=["pages"])
@@ -107,7 +119,7 @@ def get_page(page_id: int, db: Session = Depends(get_db)):
     return page
 
 
-@app.put('/pages/{page_id}', response_model=Page, summary='Обновляет страницу', tags=["pages"])
+@app.patch('/pages/{page_id}', response_model=Page, summary='Обновляет страницу', tags=["pages"])
 def update_page(
         page_id: int,
         page_in: PageIn,
@@ -130,3 +142,44 @@ def delete_page(page_id: int, db: Session = Depends(get_db)):
     if deleted_page is None:
         raise HTTPException(status_code=404, detail="Страница не найден")
     return deleted_page
+
+
+@app.on_event("startup")
+def on_startup():
+
+    data = []
+    with open(cfg.default_data_config_path) as f:
+        data = json.load(f)
+
+    for item in data:
+        for key, value in item.items():
+            if key == 'family-status':
+                make_family_status_table(value)
+            elif key == 'education':
+                make_education_table(value)
+            elif key == 'busyness':
+                make_busyness_table(value)
+
+
+def make_family_status_table(data):
+    for session in get_db():
+        for item in data:
+            crud_config.upsert_family_status(
+                session, FamilyStatus(**item)
+            )
+
+
+def make_education_table(data):
+    for session in get_db():
+        for item in data:
+            crud_config.upsert_education(
+                session, Education(**item)
+            )
+
+
+def make_busyness_table(data):
+    for session in get_db():
+        for item in data:
+            crud_config.upsert_busyness(
+                session, Busyness(**item)
+            )
