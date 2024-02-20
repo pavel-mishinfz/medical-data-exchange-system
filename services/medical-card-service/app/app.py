@@ -119,7 +119,7 @@ def get_page(page_id: int, db: Session = Depends(get_db)):
     return page
 
 
-@app.patch('/pages/{page_id}', response_model=Page, summary='Обновляет страницу', tags=["pages"])
+@app.put('/pages/{page_id}', response_model=Page, summary='Обновляет страницу', tags=["pages"])
 def update_page(
         page_id: int,
         page_in: PageIn,
