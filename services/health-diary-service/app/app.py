@@ -2,11 +2,31 @@ import uuid
 
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from .schemas import PageDiary, PageDiaryIn
+from .schemas import PageDiary, PageDiaryIn, PageDiaryOptional, PageDiaryShortOut
 from .database import DB_INITIALIZER, get_async_session
 from . import crud, config
 
-description = """"""
+description = """
+
+"Дневник здоровья" содержит следующие поля: 
+
+* _пульс_
+* _температура тела_ 
+* _артериальное давление_ (верхнее и нижнее) 
+* _уровень кислорода в крови_
+* _уровень сахара в крови_
+* _комментарий пациента_
+
+Сервис предназначен для: 
+
+* **создания** 
+* **получения**
+* **обновления**
+* **удаления**
+
+информации о "Дневнике здоровья" пациента.
+ 
+"""
 
 tags_metadata = [
     {
@@ -47,15 +67,15 @@ async def get_diary(page_diary_id: int, db: AsyncSession = Depends(get_async_ses
 
 @app.get(
     '/diaries/user/{user_id}',
-    response_model=list[PageDiary],
-    summary='Возвращает все страницы дневника пользователя',
+    response_model=list[PageDiaryShortOut],
+    summary='Возвращает все идентификаторы страниц дневника пользователя',
     tags=["diaries"]
 )
 async def get_diary(user_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
-    return await crud.get_page_diary_list(db, user_id)
+    return await crud.get_page_diary_id_list(db, user_id)
 
 
-@app.put(
+@app.patch(
     '/diaries/{page_diary_id}',
     response_model=PageDiary,
     summary='Обновляет страницу дневника',
@@ -63,10 +83,10 @@ async def get_diary(user_id: uuid.UUID, db: AsyncSession = Depends(get_async_ses
 )
 async def update_page(
         page_diary_id: int,
-        page_diary_in: PageDiaryIn,
+        page_diary_optional: PageDiaryOptional,
         db: AsyncSession = Depends(get_async_session)
 ):
-    diary = await crud.update_page_diary(db, page_diary_id, page_diary_in)
+    diary = await crud.update_page_diary(db, page_diary_id, page_diary_optional)
     if diary is None:
         raise HTTPException(status_code=404, detail="Страница не найдена")
     return diary
