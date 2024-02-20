@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,8 +16,9 @@ class PageBase(BaseModel):
 
 class PageIn(PageBase):
     """
-    Модель для добавления/обновления страницы
+    Модель для добавления страницы
     """
+    pass
 
 
 class Page(PageBase):
@@ -29,7 +31,9 @@ class Page(PageBase):
 
 
 class PageShortOut(BaseModel):
-
+    """
+    Модель используемая при запросе информации об идентификаторе страницы
+    """
     id: int = Field(title='Идентификатор страницы')
 
     class ConfigDict:
