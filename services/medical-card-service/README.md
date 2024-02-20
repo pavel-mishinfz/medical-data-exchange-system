@@ -21,9 +21,10 @@ uvicorn app:app --port 5000 --reload
 Для запуска из файла конфигурации нужно поместить файл .env в корень сервиса
 
 # Конфигурация
-| Переменная                  | Назначение                                                         | Значение по-умолчанию                        |
-| -----------                 | -----                                                              | ---                                          |
-| POSTGRES_DSN                | Строка подключения к PostgreSQL                                    | postgresql://user:pass@localhost:5432/foobar |
+| Переменная                  | Назначение                                                        | Значение по-умолчанию                        |
+|-----------------------------| -----                                                             |----------------------------------------------|
+| POSTGRES_DSN                | Строка подключения к PostgreSQL                                   | postgresql://user:pass@localhost:5432/foobar |
+| DEFAULT_DATA_PATH           | Путь к файлу инициализации данных                                 | default-data.json                            |
 
 # Документация
 
@@ -31,5 +32,5 @@ uvicorn app:app --port 5000 --reload
 
 # Сборка образа
 ```bash
-docker build -t medical-system/medical-card-service:0.1 .
+docker build -t medical-system/medical-card-service:0.0.1 .
 ```
