@@ -36,6 +36,12 @@ volumes:
       o: bind
       type: none
       device: ../services/medical-docs-service/storage
+  medical-card-service-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./medical-card-service
 #  e2e-test-data:
 #    driver: local
 #    driver_opts:
@@ -83,10 +89,13 @@ services:
         condition: service_healthy
   medical-card-service:
     image: medical-system/medical-card-service:0.0.1
+    volumes:
+      - medical-card-service-data:/mnt/
     ports:
       - "5001:5000"
     environment:
       POSTGRES_DSN: ${POSTGRES_DSN}
+      DEFAULT_DATA_CONFIG_PATH: ${DEFAULT_DATA_CONFIG_PATH}
     depends_on:
       postgresql:
         condition: service_healthy
