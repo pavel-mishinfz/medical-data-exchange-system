@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import models
-from .schemas import PageDiaryIn
+from .schemas import PageDiaryIn, PageDiaryOptional
 
 
 async def create_page_diary(
@@ -16,6 +16,11 @@ async def create_page_diary(
     db_page_diary = models.PageDiary(
         id_user=user_id,
         pulse=page_diary_in.pulse,
+        temperature=page_diary_in.temperature,
+        upper_pressure=page_diary_in.upper_pressure,
+        lower_pressure=page_diary_in.lower_pressure,
+        oxygen_level=page_diary_in.oxygen_level,
+        sugar_level=page_diary_in.sugar_level,
         comment=page_diary_in.comment,
         create_date=datetime.now(timezone.utc)
     )
@@ -39,11 +44,11 @@ async def get_page_diary(
     return result.scalars().one_or_none()
 
 
-async def get_page_diary_list(
+async def get_page_diary_id_list(
         db: AsyncSession, user_id: uuid.UUID
     ) -> list[models.PageDiary] | None:
     """
-    Возвращает все страницы дневника пользователя
+    Возвращает все идентификаторы страниц дневника пользователя
     """
     result = await db.execute(select(models.PageDiary) \
                               .filter(models.PageDiary.id_user == user_id)
@@ -52,14 +57,14 @@ async def get_page_diary_list(
 
 
 async def update_page_diary(
-        db: AsyncSession, page_diary_id: int, page_diary_in: PageDiaryIn
+        db: AsyncSession, page_diary_id: int, page_diary_optional: PageDiaryOptional
     ) -> models.PageDiary | None:
     """
     Обновляет информацию о старнице
     """
     result = await db.execute(update(models.PageDiary) \
                               .where(models.PageDiary.id == page_diary_id) \
-                              .values(page_diary_in.model_dump())
+                              .values(page_diary_optional.model_dump(exclude_unset=True))
                               )
     await db.commit()
 
@@ -72,7 +77,7 @@ async def delete_page_diary(
         db: AsyncSession, page_diary_id: int
     ) -> models.PageDiary | None:
     """
-    Удаляет информацию о странице дневнике
+    Удаляет информацию о странице дневника
     """
     deleted_page_diary = await get_page_diary(db, page_diary_id)
     await db.execute(delete(models.PageDiary) \
