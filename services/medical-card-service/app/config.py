@@ -12,8 +12,8 @@ class Config(BaseSettings):
 
     default_data_config_path: FilePath = Field(
         default='default-data.json',
-        env='DEFAULT_DATA_PATH',
-        alias='DEFAULT_DATA_PATH'
+        env='DEFAULT_DATA_CONFIG_PATH',
+        alias='DEFAULT_DATA_CONFIG_PATH'
     )
 
     model_config = SettingsConfigDict(env_file=".env")
