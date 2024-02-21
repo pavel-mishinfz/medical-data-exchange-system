@@ -7,9 +7,8 @@ class Document(Base):
     __tablename__ = "documents"
 
     id = Column(Integer, primary_key=True, index=True)
-    id_page = Column(Integer)
-    name = Column(String)
+    id_page = Column(Integer, nullable=False)
+    name = Column(String, nullable=False)
     description = Column(Text)
-    id_template = Column(Integer)
-    path_to_file = Column(String)
-    create_date = Column(DateTime(timezone=True))
+    path_to_file = Column(String, nullable=False)
+    create_date = Column(DateTime(timezone=True), nullable=False)

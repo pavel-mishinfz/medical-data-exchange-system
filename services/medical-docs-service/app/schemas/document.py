@@ -9,7 +9,7 @@ class DocumentBase(BaseModel):
     """
     Базовая модель медицинского документа
     """
-    name: str = Field(title='Название документа')
+    name: Optional[str] = None
     description: Optional[str] = Field(title='Описание документа', default=None)
 
     class ConfigDict:
@@ -18,8 +18,10 @@ class DocumentBase(BaseModel):
 
 class DocumentIn(DocumentBase):
     """
-    Модель для добавления/обновления меддокумента
+    Модель для добавления меддокумента
     """
+    name: str = Field(title='Название документа')
+
     @model_validator(mode='before')
     @classmethod
     def validate_to_json(cls, value):
@@ -32,8 +34,19 @@ class Document(DocumentBase):
     """
     Модель используемая при запросе информации о меддокументе
     """
-    id: int = Field(title='Идентификатор медкарты')
+    id: int = Field(title='Идентификатор документа')
     id_page: int = Field(title='Идентификатор страницы, к которой прикреплен документ')
-    id_template: int = Field(title='Идентификатор страницы шаблона')
     path_to_file: str = Field(title='Путь до файла меддокумента')
     create_date: datetime = Field(title='Дата создания меддокумента')
+
+
+class DocumentOptional(DocumentBase):
+    """
+    Модель для обновления меддокумента
+    """
+    @model_validator(mode='before')
+    @classmethod
+    def validate_to_json(cls, value):
+        if isinstance(value, str):
+            return cls(**json.loads(value))
+        return value

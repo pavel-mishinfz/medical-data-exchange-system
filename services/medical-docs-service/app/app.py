@@ -1,18 +1,33 @@
 import os
 import pathlib
 import uuid
-from typing import Optional, Union
 from fastapi import FastAPI, UploadFile, Depends, HTTPException, Body, File
 from sqlalchemy.orm import Session
-from .schemas import Document, DocumentIn
+from .schemas import Document, DocumentIn, DocumentOptional
 from .database import DB_INITIALIZER
 from . import crud, config
 
 from pydicom import dcmread
-from pydicom.errors import InvalidDicomError
 
 
-description = """"""
+description = """
+
+Сервис содержит следующие поля:
+
+* _название медицинского документа_
+* _описание медицинского документа_ (необязательно)
+* _документ в формате pdf/dcm_
+
+Сервис предназначен для: 
+
+* **создания** 
+* **получения**
+* **обновления**
+* **удаления**
+
+медицинских документов.
+
+"""
 
 tags_metadata = [
     {
@@ -40,31 +55,26 @@ def get_db():
 
 
 @app.post(
-    '/documents/template/{template_id}/page/{page_id}',
+    '/documents/page/{page_id}',
     response_model=Document,
     summary='Добавляет документ в базу в формате pdf или dicom',
     tags=["documents"]
 )
 def add_document(
-        page_id: int, 
-        template_id: int, 
+        page_id: int,
         document_in: DocumentIn = Body(...), 
         file: UploadFile = File(...), 
         db: Session = Depends(get_db)
     ):
     if file.content_type == 'application/pdf':
         path_to_file = create_path_to_file(cfg.path_to_storage, EXTENSION_PDF)
-        new_document = crud.create_document(
-            db, document_in, page_id, template_id, path_to_file
-        )
-        create_pdf_file(file, new_document.path_to_file)
-    else:
+        create_pdf_file(file, path_to_file)
+    elif file.content_type == 'application/dicom':
         path_to_file = create_path_to_file(cfg.path_to_storage, EXTENSION_DCM)
-        new_document = crud.create_document(
-            db, document_in, page_id, template_id, path_to_file
-        )
-        create_dcm_file(file, new_document.path_to_file)
-    return new_document
+        create_dcm_file(file, path_to_file)
+    else:
+        raise HTTPException(status_code=400, detail="Недопустимый тип файла")
+    return crud.create_document(db, document_in, page_id, path_to_file)
 
 
 @app.get('/documents/{document_id}', response_model=Document, summary='Возвращает документ', tags=["documents"])
@@ -75,25 +85,25 @@ def get_document(document_id: int, db: Session = Depends(get_db)):
     return document
 
 
-@app.put('/documents/{document_id}', response_model=Document, summary='Обновляет документ', tags=["documents"])
+@app.patch('/documents/{document_id}', response_model=Document, summary='Обновляет документ', tags=["documents"])
 def update_document(
         document_id: int,
-        document_in: DocumentIn,
+        document_optional: DocumentOptional,
         file: UploadFile = File(None),
         db: Session = Depends(get_db)
     ):
     document = crud.get_document(db, document_id)
     if document is not None:
         path_to_file = document.path_to_file
+        extension_existing_file = pathlib.Path(path_to_file).suffix
         if file:
-            delete_file_from_storage(path_to_file)
             if file.content_type == 'application/pdf':
-                path_to_file = create_path_to_file(cfg.path_to_storage, EXTENSION_PDF)
-                create_pdf_file(file, path_to_file)
+                path_to_file = update_pdf_file(file, extension_existing_file, cfg.path_to_storage, path_to_file)
+            elif file.content_type == 'application/dicom':
+                path_to_file = update_dcm_file(file, extension_existing_file, cfg.path_to_storage, path_to_file)
             else:
-                path_to_file = create_path_to_file(cfg.path_to_storage, EXTENSION_DCM)
-                create_dcm_file(file, path_to_file)
-        return crud.update_document(db, document_id, document_in, path_to_file)
+                raise HTTPException(status_code=400, detail="Недопустимый тип файла")
+        return crud.update_document(db, document_id, document_optional, path_to_file)
     raise HTTPException(status_code=404, detail="Документ не найден")
 
 
@@ -115,13 +125,32 @@ def create_dcm_file(file: UploadFile, path_to_file: str):
     try:
         dcm_file = dcmread(file.file)
         dcm_file.save_as(path_to_file)
-    except InvalidDicomError:
-        raise HTTPException(status_code=400, detail="Недопустимый тип файла")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ошибка при работе с файлом")
+
+
+def update_dcm_file(file: UploadFile, extension_existing_file: str, path_to_storage: str, path_to_file: str):
+    if extension_existing_file != EXTENSION_DCM:
+        delete_file_from_storage(path_to_file)
+        path_to_file = create_path_to_file(path_to_storage, EXTENSION_DCM)
+    create_dcm_file(file, path_to_file)
+    return path_to_file
 
 
 def create_pdf_file(file: UploadFile, path_to_file: str):
-    with open(path_to_file, 'wb') as out_file:
-        out_file.write(file.file.read())
+    try:
+        with open(path_to_file, 'wb') as out_file:
+            out_file.write(file.file.read())
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ошибка при работе с файлом")
+
+
+def update_pdf_file(file: UploadFile, extension_existing_file: str, path_to_storage: str, path_to_file: str):
+    if extension_existing_file != EXTENSION_PDF:
+        delete_file_from_storage(path_to_file)
+        path_to_file = create_path_to_file(path_to_storage, EXTENSION_PDF)
+    create_pdf_file(file, path_to_file)
+    return path_to_file
 
 
 def create_path_to_file(path_to_storage: str, extension: str):

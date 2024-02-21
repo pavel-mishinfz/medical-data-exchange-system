@@ -1,3 +1,3 @@
-from .document import DocumentBase, DocumentIn, Document
+from .document import DocumentBase, DocumentIn, Document, DocumentOptional
 
-__all__ = [Document, DocumentIn, DocumentBase]
+__all__ = [Document, DocumentIn, DocumentBase, DocumentOptional]
