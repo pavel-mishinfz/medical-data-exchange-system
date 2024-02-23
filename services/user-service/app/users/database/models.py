@@ -13,8 +13,8 @@ class Group(database.Base):
 
 
 class User(SQLAlchemyBaseUserTableUUID, database.Base):
-    first_name = Column(String(length=128), nullable=True)
-    last_name = Column(String(length=128), nullable=True)
-    age = Column(Integer(), nullable=True)
-    group_id = mapped_column(ForeignKey("group.id"))
+    first_name = Column(String(length=128), nullable=False)
+    surname = Column(String(length=128), nullable=False)
+    last_name = Column(String(length=128))
+    group_id = mapped_column(ForeignKey("group.id"), nullable=False)
     group = relationship("Group", uselist=False)
