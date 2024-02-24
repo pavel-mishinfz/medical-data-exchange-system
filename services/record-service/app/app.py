@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from .schemas import Record, RecordIn, RecordOptional
+from .schemas import Record, RecordIn, RecordOptional, RecordForUser
 from .database import DB_INITIALIZER, get_async_session
 from . import crud, config
 
@@ -47,7 +47,7 @@ async def get_record(record_id: int, db: AsyncSession = Depends(get_async_sessio
 
 @app.get(
     '/records/user/{user_id}',
-    response_model=list[Record],
+    response_model=list[RecordForUser],
     summary='Возвращает все записи пользователя на приемы',
     tags=["records"]
 )
@@ -91,4 +91,3 @@ async def on_startup():
         cfg.postgres_dsn_async.unicode_string()
     )
 
-    # loading default-time-record.json
