@@ -173,9 +173,10 @@ async def get_available_dates_and_times(schedule_id: int, db: AsyncSession = Dep
     if model_schedule is None:
         raise HTTPException(status_code=404, detail="График не найден")
     schedule = dict(model_schedule.schedule)
+    records = await get_records(db, model_schedule.id_doctor)
     available_dates = await make_available_dates(schedule)
     available_dates_and_times = await make_available_dates_and_times(
-        available_dates, schedule, model_schedule.time_per_patient
+        records, available_dates, schedule, model_schedule.time_per_patient
     )
     return available_dates_and_times
 
@@ -185,6 +186,28 @@ async def on_startup():
     await DB_INITIALIZER.init_database(
         cfg.postgres_dsn_async.unicode_string()
     )
+
+
+async def convert_date_to_string(date):
+    return date.strftime("%a. %d.%m")
+
+
+async def convert_string_to_time(string):
+    return datetime.datetime.strptime(string, "%H:%M")
+
+
+async def get_records(db, id_doctor):
+    records = {}
+    list_model_record = await crud.get_record_list_for_doctor(db, id_doctor)
+    for model_record in list_model_record:
+        model_record = model_record.__dict__
+        date = await convert_date_to_string(model_record['date'])
+        time = await convert_string_to_time(model_record['time'])
+        if date in records.keys():
+            records[date].append(time)
+        else:
+            records[date] = [time]
+    return records
 
 
 async def make_current_and_deadline_dates():
@@ -200,31 +223,35 @@ async def make_available_dates(schedule):
     while current_date <= deadline_date:
         weekday = current_date.weekday().__str__()
         if schedule.get(weekday):
-            date = current_date.strftime("%a. %d.%m")
+            date = await convert_date_to_string(current_date)
             available_dates[date] = weekday
         current_date += datetime.timedelta(days=1)
     return available_dates
 
 
 async def make_start_and_end_times(left_boundary_time, right_boundary_time):
-    start_time = datetime.datetime.strptime(left_boundary_time, "%H:%M")
-    end_time = datetime.datetime.strptime(right_boundary_time, "%H:%M")
+    start_time = await convert_string_to_time(left_boundary_time)
+    end_time = await convert_string_to_time(right_boundary_time)
     return start_time, end_time
 
 
-async def make_list_available_times(time, time_per_patient):
+async def make_list_available_times(time, time_per_patient, list_unavailable_times):
     available_times = []
     left_boundary_time, right_boundary_time = time.split('-')
     start_time, end_time = await make_start_and_end_times(left_boundary_time, right_boundary_time)
     while start_time <= end_time:
-        available_times.append(start_time.strftime("%H:%M"))
+        if list_unavailable_times is None or start_time not in list_unavailable_times:
+            available_times.append(start_time.strftime("%H:%M"))
         start_time += datetime.timedelta(minutes=time_per_patient)
     return available_times
 
 
-async def make_available_dates_and_times(available_dates, schedule, time_per_patient):
+async def make_available_dates_and_times(records, available_dates, schedule, time_per_patient):
     available_dates_and_times = {}
     for date, weekday in available_dates.items():
         time = schedule.get(weekday)
-        available_dates_and_times[date] = await make_list_available_times(time, time_per_patient)
+        list_unavailable_times = records.get(date)
+        available_dates_and_times[date] = await make_list_available_times(
+            time, time_per_patient, list_unavailable_times
+        )
     return available_dates_and_times

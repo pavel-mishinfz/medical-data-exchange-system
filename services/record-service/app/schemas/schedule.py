@@ -29,6 +29,7 @@ class Schedule(ScheduleBase):
     Модель используемая при запросе информации о графике работы
     """
     id: int = Field(title='Идентификатор графика работы')
+    id_doctor: uuid.UUID
 
 
 class ScheduleOptional(ScheduleBase):
