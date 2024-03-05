@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 from sqlalchemy import delete, select, update
@@ -42,7 +43,8 @@ async def get_record_list_for_patient(
     Возвращает список записей на приемы для пациента
     """
     result = await db.execute(select(models.Record) \
-                              .filter(models.Record.id_user == user_id)
+                              .filter(models.Record.id_user == user_id,
+                                      models.Record.date >= datetime.datetime.today().date())
                               )
     return result.scalars().all()
 
@@ -54,7 +56,8 @@ async def get_record_list_for_doctor(
     Возвращает список записей пациентов для врача
     """
     result = await db.execute(select(models.Record) \
-                              .filter(models.Record.id_doctor == doctor_id)
+                              .filter(models.Record.id_doctor == doctor_id,
+                                      models.Record.date >= datetime.datetime.today().date())
                               )
     return result.scalars().all()
 
