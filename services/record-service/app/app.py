@@ -180,19 +180,14 @@ async def on_startup():
     )
 
 
-async def make_current_date():
+async def make_current_and_deadline_dates():
     current_date = datetime.datetime.today()
-    return current_date
-
-
-async def make_deadline_date(current_date):
     deadline_date = current_date + datetime.timedelta(days=30)
-    return deadline_date
+    return current_date, deadline_date
 
 
 async def make_available_dates(schedule):
-    current_date = await make_current_date()
-    deadline_date = await make_deadline_date(current_date)
+    current_date, deadline_date = await make_current_and_deadline_dates()
 
     available_dates = {}
     while current_date <= deadline_date:
@@ -204,21 +199,16 @@ async def make_available_dates(schedule):
     return available_dates
 
 
-async def make_start_time(time):
-    start_time = datetime.datetime.strptime(time, "%H:%M")
-    return start_time
-
-
-async def make_end_time(time):
-    end_time = datetime.datetime.strptime(time, "%H:%M")
-    return end_time
+async def make_start_and_end_times(left_boundary_time, right_boundary_time):
+    start_time = datetime.datetime.strptime(left_boundary_time, "%H:%M")
+    end_time = datetime.datetime.strptime(right_boundary_time, "%H:%M")
+    return start_time, end_time
 
 
 async def make_list_available_times(time, time_per_patient):
     available_times = []
     left_boundary_time, right_boundary_time = time.split('-')
-    start_time = await make_start_time(left_boundary_time)
-    end_time = await make_end_time(right_boundary_time)
+    start_time, end_time = await make_start_and_end_times(left_boundary_time, right_boundary_time)
     while start_time <= end_time:
         available_times.append(start_time.strftime("%H:%M"))
         start_time += datetime.timedelta(minutes=time_per_patient)
