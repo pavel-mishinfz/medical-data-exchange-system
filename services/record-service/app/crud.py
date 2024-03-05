@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import models
-from .schemas import RecordIn, RecordOptional
+from .schemas import RecordIn, RecordOptional, ScheduleIn, ScheduleOptional
 
 
 async def create_record(
@@ -35,14 +35,26 @@ async def get_record(
     return result.scalars().one_or_none()
 
 
-async def get_record_list(
+async def get_record_list_for_patient(
         db: AsyncSession, user_id: uuid.UUID
     ) -> list[models.Record] | None:
     """
-    Возвращает все записи пациента на приемы
+    Возвращает список записей на приемы для пациента
     """
     result = await db.execute(select(models.Record) \
                               .filter(models.Record.id_user == user_id)
+                              )
+    return result.scalars().all()
+
+
+async def get_record_list_for_doctor(
+        db: AsyncSession, doctor_id: uuid.UUID = None
+    ) -> list[models.Record] | None:
+    """
+    Возвращает список записей пациента для врача
+    """
+    result = await db.execute(select(models.Record) \
+                              .filter(models.Record.id_doctor == doctor_id)
                               )
     return result.scalars().all()
 
@@ -78,3 +90,67 @@ async def delete_record(
     await db.commit()
 
     return deleted_record
+
+
+async def create_schedule(
+        db: AsyncSession, schedule_in: ScheduleIn
+    ) -> models.Schedule:
+    """
+    Создает новый график работы врача в БД
+    """
+    db_schedule = models.Schedule(
+        id_doctor=schedule_in.id_doctor,
+        schedule=schedule_in.schedule,
+        time_per_patient=schedule_in.time_per_patient
+    )
+
+    db.add(db_schedule)
+    await db.commit()
+    await db.refresh(db_schedule)
+    return db_schedule
+
+
+async def get_schedule(
+        db: AsyncSession, schedule_id: int
+    ) -> models.Schedule | None:
+    """
+    Возвращает график работы врача
+    """
+    result = await db.execute(select(models.Schedule) \
+                              .filter(models.Schedule.id == schedule_id) \
+                              .limit(1)
+                              )
+    return result.scalars().one_or_none()
+
+
+async def update_schedule(
+        db: AsyncSession, schedule_id: int, schedule_optional: ScheduleOptional
+    ) -> models.Schedule | None:
+    """
+    Обновляет информацию о графике работы врача
+    """
+    result = await db.execute(update(models.Schedule) \
+                              .where(models.Schedule.id == schedule_id) \
+                              .values(schedule_optional.model_dump(exclude_unset=True))
+                              )
+    await db.commit()
+
+    if result:
+        return await get_schedule(db, schedule_id)
+    return None
+
+
+async def delete_schedule(
+        db: AsyncSession, schedule_id: int
+    ) -> models.Schedule | None:
+    """
+    Удаляет информацию о графике работы врача
+    """
+    deleted_schedule = await get_schedule(db, schedule_id)
+    await db.execute(delete(models.Schedule) \
+                     .filter(models.Schedule.id == schedule_id)
+                     )
+
+    await db.commit()
+
+    return deleted_schedule
