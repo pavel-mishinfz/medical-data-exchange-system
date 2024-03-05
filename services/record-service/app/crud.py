@@ -51,7 +51,7 @@ async def get_record_list_for_doctor(
         db: AsyncSession, doctor_id: uuid.UUID = None
     ) -> list[models.Record] | None:
     """
-    Возвращает список записей пациента для врача
+    Возвращает список записей пациентов для врача
     """
     result = await db.execute(select(models.Record) \
                               .filter(models.Record.id_doctor == doctor_id)

@@ -9,7 +9,6 @@ class RecordBase(BaseModel):
     """
     Базовая модель записи на прием
     """
-    id_doctor: Optional[uuid.UUID] = None
     date: Optional[datetime] = None
     time: Optional[str] = None
 
@@ -33,17 +32,25 @@ class Record(RecordBase):
     """
     id: int = Field(title='Идентификатор записи')
     id_user: uuid.UUID
+    id_doctor: uuid.UUID
 
 
 class RecordOptional(RecordBase):
     """
     Модель для обновления информации о записи
     """
-    pass
+    id_doctor: Optional[uuid.UUID] = None
 
 
-class RecordForUser(RecordBase):
+class RecordForPatient(RecordBase):
     """
-    Модель используемая при запросе информации о всех записях пациента
+    Модель используемая при запросе информации о всех записях для пациента
     """
-    pass
+    id_doctor: uuid.UUID
+
+
+class RecordForDoctor(RecordBase):
+    """
+    Модель используемая при запросе информации о всех записях для врача
+    """
+    id_user: uuid.UUID

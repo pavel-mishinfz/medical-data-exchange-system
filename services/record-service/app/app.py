@@ -4,7 +4,14 @@ import datetime
 
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from .schemas import Record, RecordIn, RecordOptional, RecordForUser, ScheduleIn, Schedule, ScheduleOptional
+from .schemas import (Record,
+                      RecordIn,
+                      RecordOptional,
+                      RecordForPatient,
+                      RecordForDoctor,
+                      ScheduleIn,
+                      Schedule,
+                      ScheduleOptional)
 from .database import DB_INITIALIZER, get_async_session
 from . import crud, config
 
@@ -55,7 +62,7 @@ async def get_record(record_id: int, db: AsyncSession = Depends(get_async_sessio
 
 @app.get(
     '/records/user/{user_id}',
-    response_model=list[RecordForUser],
+    response_model=list[RecordForPatient],
     summary='Возвращает список записи на приемы для пациента',
     tags=["records"]
 )
@@ -65,7 +72,7 @@ async def get_record(user_id: uuid.UUID, db: AsyncSession = Depends(get_async_se
 
 @app.get(
     '/records/doctor/{doctor_id}',
-    response_model=list[Record],
+    response_model=list[RecordForDoctor],
     summary='Возвращает список записей пользователей для врача',
     tags=["records"]
 )
