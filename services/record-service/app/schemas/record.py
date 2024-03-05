@@ -21,10 +21,10 @@ class RecordIn(RecordBase):
     """
     Модель для добавления записи
     """
-    id_user: Optional[uuid.UUID] = Field(title='Идентификатор пациента')
-    id_doctor: Optional[uuid.UUID] = Field(title='Идентификатор врача')
-    date: Optional[datetime] = Field(title='Дата записи')
-    time: Optional[str] = Field(title='Время записи')
+    id_user: uuid.UUID = Field(title='Идентификатор пациента')
+    id_doctor: uuid.UUID = Field(title='Идентификатор врача')
+    date: datetime = Field(title='Дата записи')
+    time: str = Field(title='Время записи')
 
 
 class Record(RecordBase):
@@ -33,14 +33,12 @@ class Record(RecordBase):
     """
     id: int = Field(title='Идентификатор записи')
     id_user: uuid.UUID
-    pass
 
 
 class RecordOptional(RecordBase):
     """
     Модель для обновления информации о записи
     """
-    id_user: Optional[uuid.UUID] = None
     pass
 
 
