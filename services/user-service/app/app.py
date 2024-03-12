@@ -45,7 +45,11 @@ tags_metadata = [
     {
         "name": "email",
         "description": "Отправка сообщения пользователю",
-    }
+    },
+    {
+        "name": "specialization",
+        "description": "Операции со специализациями врачей",
+    },
 ]
 
 app = FastAPI(title='User Service',
@@ -135,6 +139,77 @@ async def get_list_users(
 
     result = await session.execute(select(models.User))
     return result.scalars().all()
+
+
+@app.post(
+    "/specializations",
+    response_model=schemas.specialization.Specialization,
+    summary='Создает новую специализацию',
+    tags=['specialization']
+    )
+async def add_specialization(
+    specialization: schemas.specialization.SpecializationIn,
+    session: AsyncSession = Depends(database.get_async_session)
+    ):
+
+    return await users.crud_specialization.create_specialization(specialization, session)
+
+
+@app.get(
+    "/specializations",
+    summary='Возвращает список специализаций',
+    response_model=list[schemas.specialization.Specialization],
+    tags=['specialization']
+    )
+async def get_specialization_list(
+    session: AsyncSession = Depends(database.get_async_session),
+    skip: int = 0,
+    limit: int = 100
+    ):
+
+    return await users.crud_specialization.get_specialization_list(session, skip, limit)
+
+
+@app.get("/specializations/{specialization_id}",
+         summary='Возвращает информацию о специализации',
+         tags=['specialization'])
+async def get_specialization(
+    specialization_id: int, session: AsyncSession = Depends(database.get_async_session)
+    ):
+
+    specialization = await users.crud_specialization.get_specialization(session, specialization_id)
+    if specialization is not None:
+        return specialization
+    return HTTPException(status_code=404, detail="Специализация не найдена")
+
+
+@app.patch("/specializations/{specialization_id}",
+           summary='Обновляет информацию о специализации',
+           tags=['specialization'])
+async def update_specialization(
+    specialization_id: int,
+    specialization: schemas.specialization.SpecializationOptional,
+    session: AsyncSession = Depends(database.get_async_session)
+    ):
+
+    specialization = await users.crud_specialization.update_specialization(session, specialization_id, specialization)
+    if specialization is not None:
+        return specialization
+    return HTTPException(status_code=404, detail="Специализация не найдена")
+
+
+@app.delete("/specializations/{specialization_id}",
+            summary='Удаляет информацию о специализации',
+            tags=['specialization'])
+async def delete_specialization(
+    specialization_id: int,
+    session: AsyncSession = Depends(database.get_async_session)
+    ):
+
+    specialization = await users.crud_specialization.get_specialization(session, specialization_id)
+    if await users.crud_specialization.delete_specialization(session, specialization_id):
+        return specialization
+    return HTTPException(status_code=404, detail="Специализация не найдена")
 
 
 @app.post(
