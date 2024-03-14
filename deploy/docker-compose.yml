@@ -137,10 +137,19 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
+  record-service:
+    image: medical-system/record-service:0.0.1
+    ports:
+      - "5005:5000"
+    environment:
+      POSTGRES_DSN_ASYNC: ${POSTGRES_DSN_ASYNC}
+    depends_on:
+      postgresql:
+        condition: service_healthy
   policy-enforcement-service:
     image: medical-system/policy-enforcement-service:0.0.1
     ports:
-      - "5005:5000"
+      - "5006:5000"
     volumes:
       - policy-enforcement-data:/mnt/
     environment:
