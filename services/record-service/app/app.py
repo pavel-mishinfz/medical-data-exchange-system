@@ -198,7 +198,7 @@ async def convert_string_to_time(string):
 
 async def get_records(db, id_doctor):
     records = {}
-    list_model_record = await crud.get_record_list_for_doctor(db, id_doctor)
+    list_model_record = await crud.get_record_list(db=db, doctor_id=id_doctor)
     for model_record in list_model_record:
         model_record = model_record.__dict__
         date = await convert_date_to_string(model_record['date'])
