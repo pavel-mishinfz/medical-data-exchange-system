@@ -67,7 +67,7 @@ async def get_record(record_id: int, db: AsyncSession = Depends(get_async_sessio
     tags=["records"]
 )
 async def get_record(user_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
-    return await crud.get_record_list_for_patient(db, user_id)
+    return await crud.get_record_list(db=db, user_id=user_id)
 
 
 @app.get(
@@ -77,7 +77,7 @@ async def get_record(user_id: uuid.UUID, db: AsyncSession = Depends(get_async_se
     tags=["records"]
 )
 async def get_record(doctor_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
-    return await crud.get_record_list_for_doctor(db, doctor_id)
+    return await crud.get_record_list(db=db, doctor_id=doctor_id)
 
 
 @app.patch(

@@ -36,27 +36,17 @@ async def get_record(
     return result.scalars().one_or_none()
 
 
-async def get_record_list_for_patient(
-        db: AsyncSession, user_id: uuid.UUID
+async def get_record_list(
+        db: AsyncSession,
+        user_id: uuid.UUID = None,
+        doctor_id: uuid.UUID = None
     ) -> list[models.Record] | None:
     """
-    Возвращает список записей на приемы для пациента
+    Возвращает список записей на приемы для пациента/врача
     """
     result = await db.execute(select(models.Record) \
                               .filter(models.Record.id_user == user_id,
-                                      models.Record.date >= datetime.datetime.today().date())
-                              )
-    return result.scalars().all()
-
-
-async def get_record_list_for_doctor(
-        db: AsyncSession, doctor_id: uuid.UUID = None
-    ) -> list[models.Record] | None:
-    """
-    Возвращает список записей пациентов для врача
-    """
-    result = await db.execute(select(models.Record) \
-                              .filter(models.Record.id_doctor == doctor_id,
+                                      models.Record.id_doctor == doctor_id,
                                       models.Record.date >= datetime.datetime.today().date())
                               )
     return result.scalars().all()
