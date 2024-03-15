@@ -111,6 +111,7 @@ services:
       OWN_EMAIL: ${OWN_EMAIL}
       OWN_EMAIL_PASSWORD: ${OWN_EMAIL_PASSWORD}
       DEFAULT_GROUPS_CONFIG_PATH: ${DEFAULT_GROUPS_CONFIG_PATH}
+      PATH_TO_STORAGE: ${PATH_TO_STORAGE}
     volumes:
       - user-service-data:/mnt/
     depends_on:
