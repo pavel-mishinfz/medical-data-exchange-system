@@ -46,6 +46,12 @@ class Config(BaseSettings):
         alias='DEFAULT_GROUPS_CONFIG_PATH'
     )
 
+    path_to_storage: str = Field(
+        default='storage/',
+        env='PATH_TO_STORAGE',
+        alias='PATH_TO_STORAGE'
+    )
+
     model_config = SettingsConfigDict(env_file=".env", extra='allow')
 
     @classmethod

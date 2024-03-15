@@ -1,14 +1,19 @@
 import json
+import os
+import pathlib
+import shutil
+import uuid
 from email.mime.text import MIMEText
 from smtplib import SMTP_SSL
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from . import config, users
 from .users import schemas
 from .users.database import database, models
+from .users.userapp import fastapi_users
 
 
 app_config: config.Config = config.load_config()
@@ -131,6 +136,42 @@ async def delete_group(
     return HTTPException(status_code=404, detail="Группа не найдена")
 
 
+@app.patch(
+    "/users/me/img",
+    response_model=schemas.user.UserRead,
+    summary='Обновляет фотографию в профиле пользователя',
+    tags=['users']
+    )
+async def update_img_user(
+    file: UploadFile,
+    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True)),
+    session: AsyncSession = Depends(database.get_async_session)
+    ):
+    if file.content_type in ['image/png', 'image/jpeg']:
+        path_to_file = current_user.img
+        if path_to_file is None:
+            path_to_file = make_path_to_file(app_config.path_to_storage, file.filename)
+        make_img_file(path_to_file, file)
+        return await users.crud_user.update_img(path_to_file, current_user.id, session)
+    raise HTTPException(status_code=400, detail="Недопустимый тип файла")
+
+
+@app.delete(
+    "/users/me/img",
+    response_model=schemas.user.UserRead,
+    summary='Удаляет фотографию в профиле пользователя',
+    tags=['users']
+    )
+async def delete_img_user(
+    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True)),
+    session: AsyncSession = Depends(database.get_async_session)
+    ):
+    img = current_user.img
+    if img is not None:
+        os.remove(img)
+    return await users.crud_user.update_img(None, current_user.id, session)
+
+
 @app.get(
     "/users", response_model=list[schemas.user.UserRead],
     summary="Возвращает список всех пользователей", tags=["users"]
@@ -247,3 +288,17 @@ async def on_startup():
             await users.groupcrud.upsert_group(
                 session, schemas.group.GroupUpsert(**group)
             )
+
+
+def make_path_to_file(path_to_storage, file_name):
+    extension = pathlib.Path(file_name).suffix
+    path_to_file = os.path.join(path_to_storage, str(uuid.uuid4()) + extension)
+    return path_to_file
+
+
+def make_img_file(path_to_file, file):
+    try:
+        with open(path_to_file, 'wb') as out_file:
+            out_file.write(file.file.read())
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ошибка при работе с файлом")

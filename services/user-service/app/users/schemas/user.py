@@ -12,7 +12,7 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     group_id: int = Field(title='Индентификатор группы')
     age: int = Field(title='Возраст')
     specialization_id: int = Field(title='Специализация врача')
-    img: str = Field(title='Фотография пользователя')
+    img: Optional[str] = Field(None, title='Фотография пользователя')
 
 
 class UserCreate(schemas.BaseUserCreate):
