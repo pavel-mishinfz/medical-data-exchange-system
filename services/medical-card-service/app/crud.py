@@ -198,17 +198,14 @@ def update_page(
 
 def delete_page(
         db: Session, page_id: int
-    ) -> models.Page | None:
+    ) -> tuple[models.Page, models.Document] | tuple[None, None]:
     """
     Удаляет информацию о странице
     """
     deleted_page = get_page(db, page_id)
-
-    result = db.query(models.Page) \
-        .filter(models.Page.id == page_id) \
-        .delete()
-    db.commit()
-
-    if result == 1:
-        return deleted_page
-    return None
+    if deleted_page:
+        documents = deleted_page.documents
+        db.delete(deleted_page)
+        db.commit()
+        return deleted_page, documents
+    return None, None

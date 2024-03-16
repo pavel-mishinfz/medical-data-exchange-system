@@ -1,7 +1,10 @@
 import json
+import os
+import pathlib
 import uuid
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Body, UploadFile, File
+from pydicom import dcmread
 from sqlalchemy.orm import Session
 from .schemas import (Card,
                       CardIn,
@@ -11,16 +14,19 @@ from .schemas import (Card,
                       PageShortOut,
                       FamilyStatus,
                       Education,
-                      Busyness)
+                      Busyness,
+                      DocumentIn,
+                      DocumentOptional,
+                      Document)
 from .database import DB_INITIALIZER
-from . import crud, config, crud_config
+from . import crud, config, crud_config, crud_document
 
 
 description = """
 Медкарта содержит _идентификатор пользователя_ и главную информацию о нем.
 
 Страница медкарты содержит _идентификатор карты_, 
-_идентификатор пользователя_ и _данные_, полученные с шаблона.
+_идентификатор пользователя_, _данные_, полученные с шаблона, а также _медицинские документы_ (если имеются).
 
 Сервис предназначен для: 
 
@@ -29,7 +35,7 @@ _идентификатор пользователя_ и _данные_, пол�
 * **обновления**
 * **удаления**
 
-медицинских карт и их страниц.
+медицинских карт и их страниц, а также медицинских документов.
  
 """
 
@@ -41,6 +47,10 @@ tags_metadata = [
     {
         "name": "pages",
         "description": "Операции со страницами медкарт",
+    },
+    {
+        "name": "documents",
+        "description": "Операции с меддокументами",
     }
 ]
 
@@ -138,10 +148,79 @@ def update_page(
     tags=["pages"]
     )
 def delete_page(page_id: int, db: Session = Depends(get_db)):
-    deleted_page = crud.delete_page(db, page_id)
+    deleted_page, documents = crud.delete_page(db, page_id)
     if deleted_page is None:
         raise HTTPException(status_code=404, detail="Страница не найден")
+    remove_documents_of_page_from_storage(documents)
     return deleted_page
+
+
+@app.post(
+    '/documents',
+    response_model=list[Document],
+    summary='Добавляет документы в базу в формате pdf/dicom',
+    tags=["documents"]
+)
+def add_documents(
+        document_in: DocumentIn = Body(...),
+        files: list[UploadFile] = File(...),
+        db: Session = Depends(get_db)
+    ):
+    page = crud.get_page(db, document_in.id_page)
+    if page is None:
+        raise HTTPException(status_code=404, detail="Страница не найдена")
+    for file in files:
+        path_to_file = create_path_to_file(cfg.path_to_storage, file.filename)
+        if file.content_type == 'application/pdf':
+            create_pdf_file(file, path_to_file)
+        elif file.content_type == 'application/dicom':
+            create_dcm_file(file, path_to_file)
+        crud_document.create_document(db, document_in, path_to_file)
+    return page.documents
+
+
+@app.get('/documents/{document_id}', response_model=Document, summary='Возвращает документ', tags=["documents"])
+def get_document(document_id: int, db: Session = Depends(get_db)):
+    document = crud_document.get_document(db, document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Документ не найден")
+    return document
+
+
+@app.patch('/documents/{document_id}', response_model=Document, summary='Обновляет документ', tags=["documents"])
+def update_document(
+        document_id: int,
+        document_optional: DocumentOptional,
+        file: UploadFile = File(None),
+        db: Session = Depends(get_db)
+    ):
+    document = crud_document.get_document(db, document_id)
+    if document is not None:
+        path_to_file = document.path_to_file
+        extension_existing_file = pathlib.Path(path_to_file).suffix
+        if file:
+            if file.content_type == 'application/pdf':
+                path_to_file = update_pdf_file(file, extension_existing_file, cfg.path_to_storage, path_to_file)
+            elif file.content_type == 'application/dicom':
+                path_to_file = update_dcm_file(file, extension_existing_file, cfg.path_to_storage, path_to_file)
+            else:
+                raise HTTPException(status_code=400, detail="Недопустимый тип файла")
+        return crud_document.update_document(db, document_id, document_optional, path_to_file)
+    raise HTTPException(status_code=404, detail="Документ не найден")
+
+
+@app.delete(
+    '/documents/{document_id}',
+    response_model=Document,
+    summary='Удаляет документ из базы',
+    tags=["documents"]
+    )
+def delete_documents(document_id: int, db: Session = Depends(get_db)):
+    deleted_document = crud_document.delete_document(db, document_id)
+    if deleted_document is None:
+        raise HTTPException(status_code=404, detail="Документ не найден")
+    delete_file_from_storage(deleted_document.path_to_file)
+    return deleted_document
 
 
 @app.on_event("startup")
@@ -183,3 +262,51 @@ def make_busyness_table(data):
             crud_config.upsert_busyness(
                 session, Busyness(**item)
             )
+
+
+def create_dcm_file(file: UploadFile, path_to_file: str):
+    try:
+        dcm_file = dcmread(file.file)
+        dcm_file.save_as(path_to_file)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ошибка при работе с файлом")
+
+
+def update_dcm_file(file: UploadFile, extension_existing_file: str, path_to_storage: str, path_to_file: str):
+    extension = pathlib.Path(file.filename).suffix
+    if extension_existing_file != extension:
+        delete_file_from_storage(path_to_file)
+        path_to_file = create_path_to_file(path_to_storage, extension)
+    create_dcm_file(file, path_to_file)
+    return path_to_file
+
+
+def create_pdf_file(file: UploadFile, path_to_file: str):
+    try:
+        with open(path_to_file, 'wb') as out_file:
+            out_file.write(file.file.read())
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ошибка при работе с файлом")
+
+
+def update_pdf_file(file: UploadFile, extension_existing_file: str, path_to_storage: str, path_to_file: str):
+    extension = pathlib.Path(file.filename).suffix
+    if extension_existing_file != extension:
+        delete_file_from_storage(path_to_file)
+        path_to_file = create_path_to_file(path_to_storage, extension)
+    create_pdf_file(file, path_to_file)
+    return path_to_file
+
+
+def create_path_to_file(path_to_storage: str, file_name: str):
+    extension = pathlib.Path(file_name).suffix
+    return os.path.join(path_to_storage, str(uuid.uuid4()) + extension)
+
+
+def remove_documents_of_page_from_storage(documents):
+    for document in documents:
+        delete_file_from_storage(document.path_to_file)
+
+
+def delete_file_from_storage(path_to_file: str):
+    os.remove(path_to_file)

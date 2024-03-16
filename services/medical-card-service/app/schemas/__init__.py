@@ -6,6 +6,7 @@ from .family_status import FamilyStatus
 from .education import Education
 from .busyness import Busyness
 from .disability import DisabilityBase, DisabilityIn, DisabilityOptional
+from .document import DocumentBase, Document, DocumentIn, DocumentOptional
 
 __all__ = [
     PageBase,
@@ -27,5 +28,9 @@ __all__ = [
     Busyness,
     DisabilityBase,
     DisabilityIn,
-    DisabilityOptional
+    DisabilityOptional,
+    DocumentBase,
+    Document,
+    DocumentIn,
+    DocumentOptional
 ]

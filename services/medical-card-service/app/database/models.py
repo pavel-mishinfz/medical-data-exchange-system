@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, UUID, DateTime, Boolean, Date, CHAR
+from sqlalchemy import Column, Integer, String, ForeignKey, UUID, DateTime, Boolean, Date, CHAR, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column, relationship
 
@@ -14,6 +14,7 @@ class Page(Base):
     id_card = mapped_column(ForeignKey("cards.id"), nullable=False)
     create_date = Column(DateTime(timezone=True), nullable=False)
     card = relationship("Card", back_populates='pages')
+    documents = relationship("Document", backref='page', cascade='all, delete-orphan')
 
 
 class Card(Base):
@@ -50,6 +51,17 @@ class Card(Base):
     education = relationship("Education", uselist=False)
     busyness = relationship("Busyness", uselist=False)
     disability = relationship("Disability", uselist=False, cascade="all, delete")
+
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    id_page = mapped_column(ForeignKey('pages.id'), nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(Text)
+    path_to_file = Column(String, nullable=False)
+    create_date = Column(DateTime(timezone=True), nullable=False)
 
 
 class Address(Base):
