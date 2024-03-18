@@ -1,5 +1,5 @@
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, Date
 from sqlalchemy.orm import mapped_column, relationship
 
 from . import database
@@ -16,7 +16,7 @@ class User(SQLAlchemyBaseUserTableUUID, database.Base):
     first_name = Column(String(length=128), nullable=False)
     surname = Column(String(length=128), nullable=False)
     last_name = Column(String(length=128))
-    age = Column(Integer, nullable=False)
+    birthday_date = Column(Date, nullable=False)
     specialization_id = mapped_column(ForeignKey("specialization.id"))
     img = Column(String)
     group_id = mapped_column(ForeignKey("group.id"), nullable=False)
