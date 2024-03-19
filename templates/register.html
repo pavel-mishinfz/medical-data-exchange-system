@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+{% endblock navbar %}
+
+
+{% block content %}
+<div class="row align-items-center justify-content-center" style="height: 100vh">
+  <div class="col-4">
+      <form id="registration-form" style="padding: 20px; border: 1px solid #000; border-radius: 15px">
+          <div>
+              <label for="id_email" class="form-label">Email</label>
+              <input type="email" class="form-control" name="email" id="id_email">
+          </div>
+          <div>
+              <label for="id_password" class="form-label">Пароль</label>
+              <input type="password" class="form-control" name="password" id="id_password">
+          </div>
+          <div>
+              <label for="id_name" class="form-label">Имя</label>
+              <input type="text" class="form-control" name="first_name" id="id_name">
+          </div>
+          <div>
+              <label for="id_last_name" class="form-label">Фамилия</label>
+              <input type="text" class="form-control" name="last_name" id="id_last_name">
+          </div>
+          <div>
+              <label for="id_surname" class="form-label">Отчество</label>
+              <input type="text" class="form-control" name="surname" id="id_surname">
+          </div>
+          <div>
+              <label for="id_bd_day" class="form-label">Дата рождения</label>
+              <input type="date" class="form-control" name="birthday_date" id="id_bd_day">
+          </div>
+          <input type="hidden" name="group_id" value="3">
+          <div class="d-flex justify-content-center">
+            <button type="submit" class="mt-2 btn btn-primary">Зарегистрироваться</button>
+          </div>
+          <hr>
+          <div class="text-center">
+              <small>Нажмите войти, если Вы уже имеете аккаунт</small>
+          </div>
+      </form>
+  </div>
+</div>
+{% endblock content %}
+
+
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/register.js') }}"></script>
+{% endblock scripts %}

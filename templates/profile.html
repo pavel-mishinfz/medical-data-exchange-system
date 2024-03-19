@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+<nav class="navbar navbar-expand-lg bg-body-tertiary">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">
+      <img src="{{ url_for('static', path='/logo.svg') }}" alt="Logo" width="30" height="24" class="d-inline-block align-text-top">
+      Профиль
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu"
+            aria-controls="navbarMenu" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+  </div>
+  <div class="collapse navbar-collapse" id="navbarMenu">
+    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+      <li class="nav-item">
+        <a class="nav-link" href="#">Профиль</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Записи на приём</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Медкарта</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Выйти</a>
+      </li>
+    </ul>
+  </div>
+</nav>
+{% endblock navbar %}
+
+
+{% block content %}
+<div class="row mt-4">
+  <div class="col-4">
+    <div class="p-3 d-flex justify-content-center align-items-center" style="height: 100%">
+      <img src="{{ url_for('static', path='/user_img_none.jpg') }}" alt="Фото пользователя"
+           style="width: 300px; height: 300px; border: 1px solid #000; border-radius: 50%;">
+    </div>
+  </div>
+  <div class="col-8 d-flex justify-content-center align-items-center">
+    <div class="card" style="width: 100%">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-sm-3">
+            <p class="mb-0">Имя</p>
+          </div>
+          <div class="col-sm-9">
+            <p class="text-muted mb-0">Johnatan Smith</p>
+          </div>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="col-sm-3">
+            <p class="mb-0">Фамилия</p>
+          </div>
+          <div class="col-sm-9">
+            <p class="text-muted mb-0">Johnatan Smith</p>
+          </div>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="col-sm-3">
+            <p class="mb-0">Отчество</p>
+          </div>
+          <div class="col-sm-9">
+            <p class="text-muted mb-0">Johnatan Smith</p>
+          </div>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="col-sm-3">
+            <p class="mb-0">Дата рождения</p>
+          </div>
+          <div class="col-sm-9">
+            <p class="text-muted mb-0">Johnatan Smith</p>
+          </div>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="col-sm-3">
+            <p class="mb-0">Email</p>
+          </div>
+          <div class="col-sm-9">
+            <p class="text-muted mb-0">example@example.com</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row mt-3">
+  <div class="col">
+    <div class="d-flex justify-content-end align-items-center" style="column-gap: 10px;">
+      <button type="button" class="btn btn-success">Добавить фото</button>
+      <button type="button" class="btn btn-danger">Удалить фото</button>
+      <button type="button" class="btn btn-primary">Редактировать профиль</button>
+    </div>
+  </div>
+</div>
+{% endblock content %}

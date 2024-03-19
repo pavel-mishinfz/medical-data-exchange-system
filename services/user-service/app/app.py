@@ -1,7 +1,7 @@
 import json
 import os
 import pathlib
-import shutil
+import sys
 import uuid
 from email.mime.text import MIMEText
 from smtplib import SMTP_SSL
@@ -9,11 +9,16 @@ from smtplib import SMTP_SSL
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from fastapi.staticfiles import StaticFiles
 
 from . import config, users
 from .users import schemas
 from .users.database import database, models
 from .users.userapp import fastapi_users
+
+BASE_DIR = str(pathlib.Path(__file__).resolve().parent.parent.parent.parent)
+sys.path.append(BASE_DIR)
+from routes import router as users_router
 
 
 app_config: config.Config = config.load_config()
@@ -63,12 +68,16 @@ app = FastAPI(title='User Service',
               description=description,
               openapi_tags=tags_metadata)
 
+app.mount("/static", StaticFiles(directory=BASE_DIR + "/static"), name="static")
+
 users.inject_secrets(
     jwt_secret=app_config.jwt_secret.get_secret_value(),
     verification_token_secret=app_config.verification_token_secret.get_secret_value(),
     reset_password_token_secret=app_config.reset_password_token_secret.get_secret_value()
 )
 users.include_routers(app)
+
+app.include_router(users_router)
 
 
 @app.post(
