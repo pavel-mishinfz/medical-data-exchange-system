@@ -73,7 +73,7 @@ def make_html_template_msg(token: str):
     return f"""
     <html>
         <body>
-            <a href="http://127.0.0.1:8000/register_confirm?token={token}">
+            <a href="http://127.0.0.1:8000/pass?token={token}">
                 <button type="submit">Подтвердить регистрацию</button>
             </a>
         </body>

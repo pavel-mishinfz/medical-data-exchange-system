@@ -21,8 +21,8 @@ async def get_register_gratitude_template(request: Request, email: str):
 
 
 @router.get("/register_confirm")
-async def get_register_confirm_template(request: Request, token: str):
-    return templates.TemplateResponse("confirm_register.html", {"request": request, "token": token})
+async def get_register_confirm_template(request: Request):
+    return templates.TemplateResponse("confirm_register.html", {"request": request})
 
 
 @router.get("/login")
@@ -43,3 +43,8 @@ async def get_edit_profile_template(request: Request):
 @router.get("/card")
 async def get_card_template(request: Request):
     return templates.TemplateResponse("card.html", {"request": request})
+
+
+@router.get("/pass")
+async def get_pass_template(request: Request, token: str):
+    return templates.TemplateResponse("pass.html", {"request": request, "token": token})

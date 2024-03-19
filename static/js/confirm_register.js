@@ -11,10 +11,13 @@ fetch('/auth/verify', {
     body: JSON.stringify({token: tokenVerify})
 })
 .then(response => {
-    if (!response.ok) {
-        var textVerify = document.getElementById("text-verify")
-        textVerify.textContent = 'Почта не подтверждена!'
+    if (response.ok) {
+        window.location.href = "/login";
     }
+    else {
+        window.location.href = "/register_confirm"
+    }
+
 })
 .catch(error => {
     console.error('Error:', error);
