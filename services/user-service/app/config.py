@@ -40,6 +40,18 @@ class Config(BaseSettings):
         alias='OWN_EMAIL_PASSWORD'
     )
 
+    smtp_server: str = Field(
+        default='smtp.mail.ru',
+        env='SMTP_SERVER',
+        alias='SMTP_SERVER'
+    )
+
+    smtp_port: int = Field(
+        default='465',
+        env='smtp_port',
+        alias='smtp_port'
+    )
+
     default_groups_config_path: FilePath = Field(
         default='default-groups.json',
         env='DEFAULT_GROUPS_CONFIG_PATH',

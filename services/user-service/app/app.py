@@ -266,11 +266,10 @@ async def send_email(body: schemas.mail.EmailBody):
     msg['From'] = f'<{app_config.own_email}>'
     msg['To'] = body.to
 
-    with SMTP_SSL("smtp.gmail.com", port=465) as server:
+    with SMTP_SSL(app_config.smtp_server, port=app_config.smtp_port) as server:
         server.login(app_config.own_email, app_config.own_email_password)
         server.send_message(msg)
         server.quit()
-        return {"message": "Сообщение успешно отправлено"}
 
 
 @app.on_event("startup")
