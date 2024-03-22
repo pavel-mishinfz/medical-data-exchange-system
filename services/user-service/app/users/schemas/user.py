@@ -12,7 +12,7 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     patronymic: str = Field(title='Отчество пользователя')
     group_id: int = Field(title='Индентификатор группы')
     birthday: datetime.date = Field(title='Возраст')
-    specialization_id: int = Field(title='Специализация врача')
+    specialization_id: Optional[int] = Field(None, title='Специализация врача')
     img: Optional[str] = Field(None, title='Фотография пользователя')
 
 
@@ -22,7 +22,7 @@ class UserCreate(schemas.BaseUserCreate):
     patronymic: Optional[str] = None
     group_id: int
     birthday: datetime.date
-    specialization_id: int = None
+    specialization_id: Optional[int] = None
     img: Optional[str] = None
 
 
