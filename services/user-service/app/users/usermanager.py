@@ -40,7 +40,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[models.User, uuid.UUID]):
     async def on_after_forgot_password(
             self, user: models.User, token: str, request: Optional[Request] = None
     ):
-        message = make_reset_password_template(token, user.email)
+        message = make_reset_password_template(token)
         await send_email(message, "Сброс пароля", user.email)
         print(f"User {user.id} has forgot their password. Reset token: {token}")
 
@@ -82,7 +82,7 @@ def make_verify_email_template(token: str, email: str):
     """
 
 
-def make_reset_password_template(token: str, email: str):
+def make_reset_password_template(token: str):
     return f"""
     <html>
         <body>
@@ -92,7 +92,7 @@ def make_reset_password_template(token: str, email: str):
                 Для сброса пароля нажмите:
             </p>
             <button type="button" style="margin-top:10px;padding:10px 18px;background-color:blue;border:none;border-radius:15px">
-                <a href="http://127.0.0.1:3000/reset-password?token={token}&email={email}" style="text-decoration:none;color:#fff;font-weight:700">
+                <a href="http://127.0.0.1:3000/reset-password?token={token}" style="text-decoration:none;color:#fff;font-weight:700">
                     Сбросить пароль 
                 </a>
             </button>
