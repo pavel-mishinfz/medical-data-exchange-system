@@ -47,7 +47,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[models.User, uuid.UUID]):
     async def on_after_request_verify(
             self, user: models.User, token: str, request: Optional[Request] = None
     ):
-        message = make_verify_email_template(token)
+        message = make_verify_email_template(token, user.email)
         await send_email(message, "Подтверждение регистрации", user.email)
         print(f"Verification requested for user {user.id}. Verification token: {token}")
 
@@ -62,7 +62,7 @@ async def get_user_manager(
     yield user_manager
 
 
-def make_verify_email_template(token: str):
+def make_verify_email_template(token: str, email: str):
     return f"""
     <html>
         <body>
@@ -72,7 +72,7 @@ def make_verify_email_template(token: str):
                 Для подтверждения аккаунта нажмите:
             </p>
             <button type="button" style="margin-top:10px;padding:10px 18px;background-color:green;border:none;border-radius:15px">
-                <a href="http://127.0.0.1:8000/pass?token={token}" style="text-decoration:none;color:#fff;font-weight:700">
+                <a href="http://127.0.0.1:3000/confirm?token={token}&email={email}" style="text-decoration:none;color:#fff;font-weight:700">
                     Подтвердить
                 </a>
             </button>
