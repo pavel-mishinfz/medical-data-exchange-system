@@ -92,7 +92,7 @@ def make_reset_password_template(token: str, email: str):
                 Для сброса пароля нажмите:
             </p>
             <button type="button" style="margin-top:10px;padding:10px 18px;background-color:blue;border:none;border-radius:15px">
-                <a href="http://127.0.0.1:8000/pass?token={token}&email={email}" style="text-decoration:none;color:#fff;font-weight:700">
+                <a href="http://127.0.0.1:3000/reset-password?token={token}&email={email}" style="text-decoration:none;color:#fff;font-weight:700">
                     Сбросить пароль 
                 </a>
             </button>
