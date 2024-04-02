@@ -1,10 +1,7 @@
 import json
 import os
 import pathlib
-import shutil
 import uuid
-from email.mime.text import MIMEText
-from smtplib import SMTP_SSL
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -253,23 +250,6 @@ async def delete_specialization(
     if await users.crud_specialization.delete_specialization(session, specialization_id):
         return specialization
     return HTTPException(status_code=404, detail="Специализация не найдена")
-
-
-@app.post(
-    "/email",
-    summary='Отправляет сообщение для подтверждения аккаунта или сброса пароля',
-    tags=['email']
-    )
-async def send_email(body: schemas.mail.EmailBody):
-    msg = MIMEText(body.message, "html")
-    msg['Subject'] = body.subject
-    msg['From'] = f'<{app_config.own_email}>'
-    msg['To'] = body.to
-
-    with SMTP_SSL(app_config.smtp_server, port=app_config.smtp_port) as server:
-        server.login(app_config.own_email, app_config.own_email_password)
-        server.send_message(msg)
-        server.quit()
 
 
 @app.on_event("startup")
