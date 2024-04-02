@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, UUID, DateTime, Boolean, Date, CHAR, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, UUID, Date, Boolean, Date, CHAR, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column, relationship
 
@@ -12,7 +12,7 @@ class Page(Base):
     data = Column(JSONB)
     id_template = Column(Integer, nullable=False)
     id_card = mapped_column(ForeignKey("cards.id"), nullable=False)
-    create_date = Column(DateTime(timezone=True), nullable=False)
+    create_date = Column(Date, nullable=False)
     card = relationship("Card", back_populates='pages')
     documents = relationship("Document", backref='page', cascade='all, delete-orphan')
 
@@ -22,11 +22,11 @@ class Card(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     id_user = Column(UUID(as_uuid=True), nullable=False)
-    first_name = Column(String(length=128), nullable=False)
+    name = Column(String(length=128), nullable=False)
     surname = Column(String(length=128), nullable=False)
-    last_name = Column(String(length=128))
+    patronymic = Column(String(length=128))
     is_man = Column(Boolean, nullable=False)
-    birthday_date = Column(Date, nullable=False)
+    birthday = Column(Date, nullable=False)
     id_address = mapped_column(ForeignKey('address.id'), nullable=False)
     is_urban_area = Column(Boolean, nullable=False)
     number_policy = Column(CHAR(length=16), nullable=False, unique=True)
@@ -40,10 +40,10 @@ class Card(Base):
     id_disability = mapped_column(ForeignKey('disability.id'))
     workplace = Column(String)
     job = Column(String)
-    blood_type = Column(CHAR(length=30))
+    blood_type = Column(String(length=30))
     rh_factor_is_pos = Column(Boolean)
     allergy = Column(String)
-    create_date = Column(DateTime(timezone=True), nullable=False)
+    create_date = Column(Date, nullable=False)
     pages = relationship("Page", back_populates='card', cascade="all, delete-orphan")
     address = relationship("Address", uselist=False, cascade="all, delete")
     passport = relationship("Passport", uselist=False, cascade="all, delete")
@@ -61,7 +61,7 @@ class Document(Base):
     name = Column(String, nullable=False)
     description = Column(Text)
     path_to_file = Column(String, nullable=False)
-    create_date = Column(DateTime(timezone=True), nullable=False)
+    create_date = Column(Date, nullable=False)
 
 
 class Address(Base):

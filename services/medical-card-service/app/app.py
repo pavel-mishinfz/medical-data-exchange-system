@@ -77,7 +77,19 @@ def add_card(user_id: uuid.UUID, card_in: CardIn, db: Session = Depends(get_db))
 
 @app.get('/cards/{card_id}', response_model=tuple[Card, list[PageShortOut]], summary='Возвращает медкарту', tags=["cards"])
 def get_card(card_id: int, db: Session = Depends(get_db)):
-    card, pages = crud.get_card_with_pages(db, card_id)
+    card, pages = crud.get_card_with_pages(db, card_id=card_id, user_id=None)
+    if card is None:
+        raise HTTPException(status_code=404, detail="Медкарта не найдена")
+    return card, pages
+
+
+@app.get(
+        '/cards/user/{user_id}', 
+        response_model=tuple[Card, list[PageShortOut]], 
+        summary='Возвращает медкарту для пациента', 
+        tags=["cards"])
+def get_card_for_patient(user_id: uuid.UUID, db: Session = Depends(get_db)):
+    card, pages = crud.get_card_with_pages(db, card_id=None, user_id=user_id)
     if card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найдена")
     return card, pages
@@ -106,6 +118,36 @@ def delete_card(card_id: int, db: Session = Depends(get_db)):
     if deleted_card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найден")
     return deleted_card
+
+
+@app.get('/family_status', response_model=list[FamilyStatus], summary='Возвращает список доступных семейных статусов')
+def get_list_family_status(db: Session = Depends(get_db)):
+    return crud.get_list_family_status(db)
+
+
+@app.get('/family_status/{family_status_id}', response_model=FamilyStatus, summary='Возвращает информацию о семейном статусе')
+def get_family_status(family_status_id: int, db: Session = Depends(get_db)):
+    return crud.get_family_status(db, family_status_id)
+
+
+@app.get('/education', response_model=list[Education], summary='Возвращает список доступных типов образования')
+def get_list_education(db: Session = Depends(get_db)):
+    return crud.get_list_education(db)
+
+
+@app.get('/education/{education_id}', response_model=Education, summary='Возвращает информацию о типе образования')
+def get_education(education_id: int, db: Session = Depends(get_db)):
+    return crud.get_education(db, education_id)
+
+
+@app.get('/busyness', response_model=list[Busyness], summary='Возвращает список доступных типов занятости')
+def get_list_busyness(db: Session = Depends(get_db)):
+    return crud.get_list_busyness(db)    
+
+
+@app.get('/busyness/{busyness_id}', response_model=Busyness, summary='Возвращает информацию о типе занятости')
+def get_busyness(busyness_id: int, db: Session = Depends(get_db)):
+    return crud.get_busyness(db, busyness_id) 
 
 
 @app.post(
@@ -227,7 +269,7 @@ def delete_documents(document_id: int, db: Session = Depends(get_db)):
 def on_startup():
 
     data = []
-    with open(cfg.default_data_config_path) as f:
+    with open(cfg.default_data_config_path, encoding="utf-8") as f:
         data = json.load(f)
 
     for item in data:

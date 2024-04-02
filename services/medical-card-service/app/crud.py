@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from .database import models
 from .schemas import PageIn, CardIn, CardOptional
@@ -27,11 +28,11 @@ def create_card(
 
     db_card = models.Card(
         id_user=user_id,
-        first_name=card_in.first_name,
+        name=card_in.name,
         surname=card_in.surname,
-        last_name=card_in.last_name,
+        patronymic=card_in.patronymic,
         is_man=card_in.is_man,
-        birthday_date=card_in.birthday_date,
+        birthday=card_in.birthday,
         id_address=address.id,
         is_urban_area=card_in.is_urban_area,
         number_policy=card_in.number_policy,
@@ -58,23 +59,27 @@ def create_card(
 
 
 def get_card(
-        db: Session, card_id: int
+        db: Session, card_id: int, user_id: uuid.UUID
     ) -> models.Card | None:
     """
     Возвращает медкарту
     """
     return db.query(models.Card) \
-        .filter(models.Card.id == card_id) \
+        .filter(
+            or_(
+                models.Card.id == card_id, 
+                models.Card.id_user == user_id)
+            ) \
         .first()
 
 
 def get_card_with_pages(
-        db: Session, card_id: int
+        db: Session, card_id: int, user_id: uuid.UUID
     ) -> tuple[models.Card | None, list[models.Page] | None]:
     """
     Возвращает медкарту cо всеми страницами
     """
-    card = get_card(db, card_id)
+    card = get_card(db, card_id, user_id)
     pages = get_pages(db, card_id)
     return card, pages
 
@@ -209,3 +214,64 @@ def delete_page(
         db.commit()
         return deleted_page, documents
     return None, None
+
+
+def get_list_family_status(
+        db: Session
+    ) -> list[models.FamilyStatus]:
+    """
+    Возвращает список доступных семейных статусов
+    """
+    return db.query(models.FamilyStatus).all()
+
+
+def get_family_status(
+        db: Session, id_family_status: int
+    ) -> models.FamilyStatus:
+    """
+    Возвращает информацию о семейном статусе
+    """
+    return db.query(models.FamilyStatus) \
+        .filter(models.FamilyStatus.id == id_family_status) \
+        .first()
+
+
+def get_list_education(
+        db: Session
+    ) -> list[models.Education]:
+    """
+    Возвращает список доступных типов образования
+    """
+    return db.query(models.Education).all()
+
+
+def get_education(
+        db: Session, id_education: int
+    ) -> models.Education:
+    """
+    Возвращает информацию о типе образования
+    """
+    return db.query(models.Education) \
+        .filter(models.Education.id == id_education) \
+        .first()
+
+
+def get_list_busyness(
+        db: Session
+    ) -> list[models.Busyness]:
+    """
+    Возвращает информацию о типе занятости
+    """
+    return db.query(models.Busyness).all()
+
+
+def get_busyness(
+        db: Session, id_busyness: int
+    ) -> models.Busyness:
+    """
+    Возвращает список доступных типов занятости
+    """
+    return db.query(models.Busyness) \
+        .filter(models.Busyness.id == id_busyness) \
+        .first()
+

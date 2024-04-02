@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from .address import AddressIn, AddressOptional
 from .passport import PassportIn, PassportOptional
 from .disability import DisabilityIn, DisabilityOptional
@@ -11,11 +11,11 @@ class CardBase(BaseModel):
     """
     Базовая модель медкарты
     """
-    first_name: Optional[str] = None
+    name: Optional[str] = None
     surname: Optional[str] = None
-    last_name: Optional[str] = Field(title='Отчество', default=None)
+    patronymic: Optional[str] = Field(title='Отчество', default=None)
     is_man: Optional[bool] = None
-    birthday_date: Optional[datetime] = None
+    birthday: Optional[datetime] = None
     address: Optional[AddressOptional] = None
     is_urban_area: Optional[bool] = None
     number_policy: Optional[str] = Field(title='Номер полиса', min_length=16, max_length=16, default=None)
@@ -29,7 +29,7 @@ class CardBase(BaseModel):
     disability: Optional[DisabilityIn] = Field(title='Инвалидность', default=None)
     workplace: Optional[str] = Field(title='Место работы', default=None)
     job: Optional[str] = Field(title='Должность', default=None)
-    blood_type: Optional[str] = Field(title='Группа крови', default=None)
+    blood_type: Optional[str] = Field(title='Группа крови', max_length=30, default=None)
     rh_factor_is_pos: Optional[bool] = Field(title='Резус-фактор', default=None)
     allergy: Optional[str] = Field(title='Аллергические реакции', default=None)
 
@@ -41,10 +41,10 @@ class CardIn(CardBase):
     """
     Модель для добавления медкарты
     """
-    first_name: str = Field(title='Имя')
+    name: str = Field(title='Имя')
     surname: str = Field(title='Фамилия')
     is_man: bool = Field(title='Пол')
-    birthday_date: datetime = Field(title='Дата рождения')
+    birthday: datetime = Field(title='Дата рождения')
     address: AddressIn = Field(title='Место регистрации')
     is_urban_area: bool = Field(title='Сельская/городская местность')
     number_policy: str = Field(title='Номер полиса', min_length=16, max_length=16)
