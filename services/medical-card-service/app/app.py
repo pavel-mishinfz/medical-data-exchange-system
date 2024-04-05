@@ -75,24 +75,27 @@ def add_card(user_id: uuid.UUID, card_in: CardIn, db: Session = Depends(get_db))
     return crud.create_card(db, user_id, card_in)
 
 
-@app.get('/cards/{card_id}', response_model=tuple[Card, list[PageShortOut]], summary='Возвращает медкарту', tags=["cards"])
-def get_card(card_id: int, db: Session = Depends(get_db)):
-    card, pages = crud.get_card_with_pages(db, card_id=card_id, user_id=None)
+@app.get('/cards/{card_id}',
+         response_model=Card,
+         summary='Возвращает медкарту по id карты',
+         tags=["cards"])
+def get_card_by_id(card_id: int, db: Session = Depends(get_db)):
+    card = crud.get_card(db, card_id=card_id, user_id=None)
     if card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найдена")
-    return card, pages
+    return card
 
 
 @app.get(
         '/cards/user/{user_id}', 
-        response_model=tuple[Card, list[PageShortOut]], 
-        summary='Возвращает медкарту для пациента', 
+        response_model=Card,
+        summary='Возвращает медкарту по id пациента',
         tags=["cards"])
-def get_card_for_patient(user_id: uuid.UUID, db: Session = Depends(get_db)):
-    card, pages = crud.get_card_with_pages(db, card_id=None, user_id=user_id)
+def get_card_by_user_id(user_id: uuid.UUID, db: Session = Depends(get_db)):
+    card = crud.get_card(db, card_id=None, user_id=user_id)
     if card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найдена")
-    return card, pages
+    return card
 
 
 @app.patch('/cards/{card_id}', response_model=Card, summary='Обновляет медкарту', tags=["cards"])
@@ -120,34 +123,25 @@ def delete_card(card_id: int, db: Session = Depends(get_db)):
     return deleted_card
 
 
-@app.get('/family_status', response_model=list[FamilyStatus], summary='Возвращает список доступных семейных статусов')
+@app.get(
+    '/family_status',
+    response_model=list[FamilyStatus],
+    summary='Возвращает список доступных семейных статусов')
 def get_list_family_status(db: Session = Depends(get_db)):
     return crud.get_list_family_status(db)
 
 
-@app.get('/family_status/{family_status_id}', response_model=FamilyStatus, summary='Возвращает информацию о семейном статусе')
-def get_family_status(family_status_id: int, db: Session = Depends(get_db)):
-    return crud.get_family_status(db, family_status_id)
-
-
-@app.get('/education', response_model=list[Education], summary='Возвращает список доступных типов образования')
+@app.get(
+    '/education',
+    response_model=list[Education],
+    summary='Возвращает список доступных типов образования')
 def get_list_education(db: Session = Depends(get_db)):
     return crud.get_list_education(db)
 
 
-@app.get('/education/{education_id}', response_model=Education, summary='Возвращает информацию о типе образования')
-def get_education(education_id: int, db: Session = Depends(get_db)):
-    return crud.get_education(db, education_id)
-
-
 @app.get('/busyness', response_model=list[Busyness], summary='Возвращает список доступных типов занятости')
 def get_list_busyness(db: Session = Depends(get_db)):
-    return crud.get_list_busyness(db)    
-
-
-@app.get('/busyness/{busyness_id}', response_model=Busyness, summary='Возвращает информацию о типе занятости')
-def get_busyness(busyness_id: int, db: Session = Depends(get_db)):
-    return crud.get_busyness(db, busyness_id) 
+    return crud.get_list_busyness(db)
 
 
 @app.post(
@@ -157,7 +151,7 @@ def get_busyness(busyness_id: int, db: Session = Depends(get_db)):
     tags=["pages"]
     )
 def add_page(card_id: int, template_id: int, page_in: PageIn, db: Session = Depends(get_db)):
-    card = crud.get_card(db, card_id)
+    card = crud.get_card(db, card_id, None)
     if card:
         return crud.create_page(db, card_id, template_id, page_in)
     raise HTTPException(status_code=404, detail="Медкарта не найден")
@@ -217,6 +211,8 @@ def add_documents(
             create_pdf_file(file, path_to_file)
         elif file.content_type == 'application/dicom':
             create_dcm_file(file, path_to_file)
+        else:
+            raise HTTPException(status_code=400, detail="Недопустимый тип файла")
         crud_document.create_document(db, document_in, path_to_file)
     return page.documents
 

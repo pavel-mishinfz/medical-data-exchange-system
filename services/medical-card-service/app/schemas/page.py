@@ -3,6 +3,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from .document import Document
+
 
 class PageBase(BaseModel):
     """
@@ -28,6 +30,7 @@ class Page(PageBase):
     id: int = Field(title='Идентификатор страницы')
     id_template: int = Field(title='Идентификатор шаблона страницы')
     create_date: datetime = Field(title='Дата создания страницы')
+    documents: Optional[list[Document]] = Field(None, title='Документы страницы')
 
 
 class PageShortOut(BaseModel):

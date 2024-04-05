@@ -59,7 +59,7 @@ def create_card(
 
 
 def get_card(
-        db: Session, card_id: int, user_id: uuid.UUID
+        db: Session, card_id: int | None, user_id: uuid.UUID | None
     ) -> models.Card | None:
     """
     Возвращает медкарту
@@ -71,17 +71,6 @@ def get_card(
                 models.Card.id_user == user_id)
             ) \
         .first()
-
-
-def get_card_with_pages(
-        db: Session, card_id: int, user_id: uuid.UUID
-    ) -> tuple[models.Card | None, list[models.Page] | None]:
-    """
-    Возвращает медкарту cо всеми страницами
-    """
-    card = get_card(db, card_id, user_id)
-    pages = get_pages(db, card_id)
-    return card, pages
 
 
 def update_card(
@@ -96,7 +85,7 @@ def update_card(
         'disability'
     }
 
-    before_update_card = get_card(db, card_id)
+    before_update_card = get_card(db, card_id, None)
     id_address = before_update_card.id_address
     id_passport = before_update_card.id_passport
     id_disability = before_update_card.id_disability
@@ -122,7 +111,7 @@ def update_card(
     db.commit()
 
     if result == 1:
-        return get_card(db, card_id)
+        return get_card(db, card_id, None)
     return None
 
 
@@ -132,7 +121,7 @@ def delete_card(
     """
     Удаляет информацию о медкарте
     """
-    deleted_card = get_card(db, card_id)
+    deleted_card = get_card(db, card_id, None)
     if deleted_card is None:
         return None
 
@@ -225,17 +214,6 @@ def get_list_family_status(
     return db.query(models.FamilyStatus).all()
 
 
-def get_family_status(
-        db: Session, id_family_status: int
-    ) -> models.FamilyStatus:
-    """
-    Возвращает информацию о семейном статусе
-    """
-    return db.query(models.FamilyStatus) \
-        .filter(models.FamilyStatus.id == id_family_status) \
-        .first()
-
-
 def get_list_education(
         db: Session
     ) -> list[models.Education]:
@@ -245,17 +223,6 @@ def get_list_education(
     return db.query(models.Education).all()
 
 
-def get_education(
-        db: Session, id_education: int
-    ) -> models.Education:
-    """
-    Возвращает информацию о типе образования
-    """
-    return db.query(models.Education) \
-        .filter(models.Education.id == id_education) \
-        .first()
-
-
 def get_list_busyness(
         db: Session
     ) -> list[models.Busyness]:
@@ -263,15 +230,3 @@ def get_list_busyness(
     Возвращает информацию о типе занятости
     """
     return db.query(models.Busyness).all()
-
-
-def get_busyness(
-        db: Session, id_busyness: int
-    ) -> models.Busyness:
-    """
-    Возвращает список доступных типов занятости
-    """
-    return db.query(models.Busyness) \
-        .filter(models.Busyness.id == id_busyness) \
-        .first()
-

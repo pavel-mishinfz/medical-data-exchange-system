@@ -1,10 +1,14 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from .address import AddressIn, AddressOptional
 from .passport import PassportIn, PassportOptional
 from .disability import DisabilityIn, DisabilityOptional
+from .family_status import FamilyStatus
+from .education import Education
+from .busyness import Busyness
+from .page import PageShortOut
 
 
 class CardBase(BaseModel):
@@ -23,9 +27,6 @@ class CardBase(BaseModel):
     insurance_company: Optional[str] = None
     benefit_category_code: Optional[str] = Field(title='Код категории лояльности', default=None)
     passport: Optional[PassportOptional] = None
-    id_family_status: Optional[int] = None
-    id_education: Optional[int] = None
-    id_busyness: Optional[int] = None
     disability: Optional[DisabilityIn] = Field(title='Инвалидность', default=None)
     workplace: Optional[str] = Field(title='Место работы', default=None)
     job: Optional[str] = Field(title='Должность', default=None)
@@ -61,11 +62,18 @@ class Card(CardBase):
     Модель используемая при запросе информации о медкарте
     """
     id: int = Field(title='Идентификатор медкарты')
+    family_status: FamilyStatus
+    education: Education
+    busyness: Busyness
     create_date: datetime = Field(title='Дата создания медкарты')
+    pages: Optional[list[PageShortOut]] = Field(None, title='Идентификаторы страниц медкарты')
 
 
 class CardOptional(CardBase):
     """
     Модель для обновления медкарты
     """
+    id_family_status: Optional[int] = None
+    id_education: Optional[int] = None
+    id_busyness: Optional[int] = None
     disability: Optional[DisabilityOptional] = None
