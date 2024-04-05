@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from .schemas import PageDiary, PageDiaryIn, PageDiaryOptional, PageDiaryShortOut
+from .schemas import PageDiary, PageDiaryIn, PageDiaryOptional
 from .database import DB_INITIALIZER, get_async_session
 from . import crud, config
 
@@ -67,12 +67,15 @@ async def get_diary(page_diary_id: int, db: AsyncSession = Depends(get_async_ses
 
 @app.get(
     '/diaries/user/{user_id}',
-    response_model=list[PageDiaryShortOut],
-    summary='Возвращает все идентификаторы страниц дневника пользователя',
+    response_model=list[PageDiary],
+    summary='Возвращает список страниц дневника пользователя',
     tags=["diaries"]
 )
-async def get_diary(user_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
-    return await crud.get_page_diary_id_list(db, user_id)
+async def get_diary_list(
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_async_session)
+    ):
+    return await crud.get_page_diary_list(db, user_id)
 
 
 @app.patch(

@@ -44,15 +44,15 @@ async def get_page_diary(
     return result.scalars().one_or_none()
 
 
-async def get_page_diary_id_list(
+async def get_page_diary_list(
         db: AsyncSession, user_id: uuid.UUID
     ) -> list[models.PageDiary] | None:
     """
-    Возвращает все идентификаторы страниц дневника пользователя
+    Возвращает список страниц дневника пользователя
     """
     result = await db.execute(select(models.PageDiary) \
-                              .filter(models.PageDiary.id_user == user_id)
-                              )
+                              .filter(models.PageDiary.id_user == user_id) \
+                              .order_by(models.PageDiary.create_date.asc()))
     return result.scalars().all()
 
 

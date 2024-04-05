@@ -53,13 +53,3 @@ class PageDiaryOptional(PageDiaryBase):
     Модель для обновления страницы дневника
     """
     pass
-
-
-class PageDiaryShortOut(BaseModel):
-    """
-    Модель используемая при запросе информации об идентификаторе страницы
-    """
-    id: int = Field(title='Идентификатор страницы')
-
-    class ConfigDict:
-        from_attribute = True
