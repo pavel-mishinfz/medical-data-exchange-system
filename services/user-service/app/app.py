@@ -4,6 +4,7 @@ import pathlib
 import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -47,10 +48,6 @@ description = """
 
 tags_metadata = [
     {
-        "name": "email",
-        "description": "Отправка сообщения пользователю",
-    },
-    {
         "name": "specialization",
         "description": "Операции со специализациями врачей",
     },
@@ -59,6 +56,9 @@ tags_metadata = [
 app = FastAPI(title='User Service',
               description=description,
               openapi_tags=tags_metadata)
+
+ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.resolve()
+app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
 
 users.inject_secrets(
     jwt_secret=app_config.jwt_secret.get_secret_value(),
@@ -211,6 +211,7 @@ async def get_specialization_list(
 
 
 @app.get("/specializations/{specialization_id}",
+         response_model=schemas.specialization.SpecializationAndDoctors,
          summary='Возвращает информацию о специализации',
          tags=['specialization'])
 async def get_specialization(
@@ -224,6 +225,7 @@ async def get_specialization(
 
 
 @app.patch("/specializations/{specialization_id}",
+           response_model=schemas.specialization.Specialization,
            summary='Обновляет информацию о специализации',
            tags=['specialization'])
 async def update_specialization(
@@ -232,13 +234,16 @@ async def update_specialization(
     session: AsyncSession = Depends(database.get_async_session)
     ):
 
-    specialization = await users.crud_specialization.update_specialization(session, specialization_id, specialization)
+    specialization = await users.crud_specialization.update_specialization(
+        session, specialization_id, specialization
+    )
     if specialization is not None:
         return specialization
     return HTTPException(status_code=404, detail="Специализация не найдена")
 
 
 @app.delete("/specializations/{specialization_id}",
+            response_model=schemas.specialization.Specialization,
             summary='Удаляет информацию о специализации',
             tags=['specialization'])
 async def delete_specialization(
