@@ -4,6 +4,7 @@ from typing import Any, Dict
 import httpx
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from . import config, schemes
 from .policies.requestenforcer import EnforceResult, RequestEnforcer
@@ -34,6 +35,14 @@ class App(FastAPI):
 
 
 app = App()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.api_route(
