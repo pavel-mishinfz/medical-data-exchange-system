@@ -75,12 +75,27 @@ services:
   #     - "27017:27017"
   #   environment:
   #     - MONGO_INITDB_DATABASE=medical-system
+  policy-enforcement-service:
+    image: medical-system/policy-enforcement-service:0.0.1
+    ports:
+      - "5000:5000"
+    volumes:
+      - policy-enforcement-data:/mnt/
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      POLICIES_CONFIG_PATH: ${POLICIES_CONFIG_PATH}
+    depends_on:
+      - template-service
+      - medical-card-service
+      - user-service
+      - health-diary-service
+      - record-service
   template-service:
     image: medical-system/template-service:0.0.1
     volumes:
       - template-service-storage:/src/storage
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       POSTGRES_DSN: ${POSTGRES_DSN}
       PATH_TO_STORAGE: ${PATH_TO_STORAGE}
@@ -92,7 +107,7 @@ services:
     volumes:
       - medical-card-service-data:/mnt/
     ports:
-      - "5001:5000"
+      - "5002:5000"
     environment:
       POSTGRES_DSN: ${POSTGRES_DSN}
       DEFAULT_DATA_CONFIG_PATH: ${DEFAULT_DATA_CONFIG_PATH}
@@ -103,7 +118,7 @@ services:
   user-service:
     image: medical-system/user-service:0.0.1
     ports:
-      - "5002:5000"
+      - "5003:5000"
     environment:
       POSTGRES_DSN_ASYNC: ${POSTGRES_DSN_ASYNC}
       JWT_SECRET: ${JWT_SECRET}
@@ -123,7 +138,7 @@ services:
   health-diary-service:
     image: medical-system/health-diary-service:0.0.1
     ports:
-      - "5003:5000"
+      - "5004:5000"
     environment:
       POSTGRES_DSN_ASYNC: ${POSTGRES_DSN_ASYNC}
     depends_on:
@@ -132,27 +147,12 @@ services:
   record-service:
     image: medical-system/record-service:0.0.1
     ports:
-      - "5004:5000"
+      - "5005:5000"
     environment:
       POSTGRES_DSN_ASYNC: ${POSTGRES_DSN_ASYNC}
     depends_on:
       postgresql:
         condition: service_healthy
-  policy-enforcement-service:
-    image: medical-system/policy-enforcement-service:0.0.1
-    ports:
-      - "5005:5000"
-    volumes:
-      - policy-enforcement-data:/mnt/
-    environment:
-      JWT_SECRET: ${JWT_SECRET}
-      POLICIES_CONFIG_PATH: ${POLICIES_CONFIG_PATH}
-    depends_on:
-      - template-service
-      - medical-card-service
-      - user-service
-      - health-diary-service
-      - medical-docs-service
 #  test-runner:
 #    image: python:3.11
 #    volumes:
