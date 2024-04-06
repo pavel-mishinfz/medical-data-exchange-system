@@ -62,7 +62,7 @@ app = FastAPI(title='Medical Card Service',
               description=description,
               openapi_tags=tags_metadata)
 
-ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.parent.resolve()
+ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.resolve()
 app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
 
 
