@@ -1,7 +1,7 @@
 import datetime
 import uuid
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import models
 from .schemas import RecordIn, RecordOptional, ScheduleIn, ScheduleOptional
@@ -104,13 +104,16 @@ async def create_schedule(
 
 
 async def get_schedule(
-        db: AsyncSession, schedule_id: int
+        db: AsyncSession, schedule_id: int | None, doctor_id: uuid.UUID | None
     ) -> models.Schedule | None:
     """
     Возвращает график работы врача
     """
     result = await db.execute(select(models.Schedule) \
-                              .filter(models.Schedule.id == schedule_id) \
+                              .filter(
+                                or_(
+                                models.Schedule.id == schedule_id,
+                                models.Schedule.id_doctor == doctor_id)) \
                               .limit(1)
                               )
     return result.scalars().one_or_none()

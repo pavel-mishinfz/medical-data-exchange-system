@@ -3,6 +3,7 @@ import uuid
 import datetime
 
 from fastapi import FastAPI, Depends, HTTPException
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from .schemas import (Record,
                       RecordIn,
@@ -122,11 +123,24 @@ async def add_schedule(schedule_in: ScheduleIn, db: AsyncSession = Depends(get_a
 @app.get(
     '/schedules/{schedule_id}',
     response_model=Schedule,
-    summary='Возвращает график работы врача',
+    summary='Возвращает график работы по id графика',
     tags=["schedules"]
 )
 async def get_schedule(schedule_id: int, db: AsyncSession = Depends(get_async_session)):
-    schedule = await crud.get_schedule(db, schedule_id)
+    schedule = await crud.get_schedule(db, schedule_id=schedule_id, doctor_id=None)
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="График не найден")
+    return schedule
+
+
+@app.get(
+    '/schedules/doctor/{doctor_id}',
+    response_model=Schedule,
+    summary='Возвращает график работы по id врача',
+    tags=["schedules"]
+)
+async def get_schedule(doctor_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
+    schedule = await crud.get_schedule(db, schedule_id=None, doctor_id=doctor_id)
     if schedule is None:
         raise HTTPException(status_code=404, detail="График не найден")
     return schedule
@@ -163,20 +177,22 @@ async def delete_schedule(schedule_id: int, db: AsyncSession = Depends(get_async
 
 
 @app.get(
-    '/schedules/{schedule_id}/dates',
+    '/schedules/dates',
     response_model=dict,
     summary='Возвращает доступные для записи даты и время',
     tags=["schedules"]
 )
-async def get_available_dates_and_times(schedule_id: int, db: AsyncSession = Depends(get_async_session)):
-    model_schedule = await crud.get_schedule(db, schedule_id)
-    if model_schedule is None:
+async def get_available_dates_and_times(
+        schedule_in: ScheduleIn,
+        db: AsyncSession = Depends(get_async_session)
+    ):
+    if schedule_in is None:
         raise HTTPException(status_code=404, detail="График не найден")
-    schedule = dict(model_schedule.schedule)
-    records = await get_records(db, model_schedule.id_doctor)
+    schedule = dict(schedule_in.schedule)
+    records = await get_records(db, schedule_in.id_doctor)
     available_dates = await make_available_dates(schedule)
     available_dates_and_times = await make_available_dates_and_times(
-        records, available_dates, schedule, model_schedule.time_per_patient
+        records, available_dates, schedule, schedule_in.time_per_patient
     )
     return available_dates_and_times
 
