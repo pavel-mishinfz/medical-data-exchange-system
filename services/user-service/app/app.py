@@ -5,13 +5,12 @@ import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.staticfiles import StaticFiles
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
 from . import config, users
 from .users import schemas
-from .users.database import database, models
-from .users.userapp import fastapi_users
+from .users.database import database
 
 
 app_config: config.Config = config.load_config()
@@ -141,15 +140,16 @@ async def delete_group(
     )
 async def update_img_user(
     file: UploadFile,
-    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True)),
+    user_id: uuid.UUID,
     session: AsyncSession = Depends(database.get_async_session)
     ):
     if file.content_type in ['image/png', 'image/jpeg']:
-        path_to_file = current_user.img
+        user = await users.crud_user.get_user(user_id, session)
+        path_to_file = user.img
         if path_to_file is None:
             path_to_file = make_path_to_file(app_config.path_to_storage, file.filename)
         make_img_file(path_to_file, file)
-        return await users.crud_user.update_img(path_to_file, current_user.id, session)
+        return await users.crud_user.update_img(path_to_file, user_id, session)
     raise HTTPException(status_code=400, detail="Недопустимый тип файла")
 
 
@@ -160,13 +160,14 @@ async def update_img_user(
     tags=['users']
     )
 async def delete_img_user(
-    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True)),
+    user_id: uuid.UUID,
     session: AsyncSession = Depends(database.get_async_session)
     ):
-    img = current_user.img
+    user = await users.crud_user.get_user(user_id, session)
+    img = user.img
     if img is not None:
         os.remove(img)
-    return await users.crud_user.update_img(None, current_user.id, session)
+    return await users.crud_user.update_img(None, user_id, session)
 
 
 @app.get(
@@ -176,9 +177,7 @@ async def delete_img_user(
 async def get_list_users(
     session: AsyncSession = Depends(database.get_async_session)
     ):
-
-    result = await session.execute(select(models.User))
-    return result.scalars().all()
+    return users.crud_user.get_users_list(session)
 
 
 @app.post(

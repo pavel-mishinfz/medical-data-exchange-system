@@ -20,6 +20,17 @@ async def get_user(
     return result.scalars().one_or_none()
 
 
+async def get_users_list(
+        session: AsyncSession
+    ) -> list[models.User]:
+    """
+    Возвращает список пользователей
+    """
+
+    result = await session.execute(select(models.User))
+    return result.scalars().all()
+
+
 async def update_img(
         path_to_file: str | None, user_id: uuid.UUID, session: AsyncSession
     ) -> models.User | None:
