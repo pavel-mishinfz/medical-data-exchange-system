@@ -1,9 +1,13 @@
 import os
+import pathlib
 import uuid
 
 from fastapi import FastAPI, UploadFile, Depends, HTTPException, Body, File
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+
 from sqlalchemy.orm import Session
+
 from .schemas import Template, TemplateIn, TemplateOut
 from .database import DB_INITIALIZER
 from . import crud, config
@@ -37,6 +41,9 @@ SessionLocal = DB_INITIALIZER.init_database(str(cfg.postgres_dsn))
 app = FastAPI(title='Template Service',
               description=description,
               openapi_tags=tags_metadata)
+
+ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.parent.resolve()
+app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
 
 
 def get_db():
