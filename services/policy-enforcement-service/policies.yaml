@@ -1,18 +1,18 @@
 services:
     - name: template-service
-      entrypoint: http://template-service:5001/
+      entrypoint: http://template-service:5000/
       inject_token_in_swagger: True
     - name: medical-card-service
-      entrypoint: http://medical-card-service:5002/
+      entrypoint: http://medical-card-service:5000/
       inject_token_in_swagger: True
     - name: user-service
-      entrypoint: http://user-service:5003/
+      entrypoint: http://user-service:5000/
       inject_token_in_swagger: True
     - name: health-diary-service
-      entrypoint: http://health-diary-service:5004/
+      entrypoint: http://health-diary-service:5000/
       inject_token_in_swagger: True
     - name: record-service
-      entrypoint: http://record-service:5005/
+      entrypoint: http://record-service:5000/
       inject_token_in_swagger: True
 model: |
     [request_definition]
