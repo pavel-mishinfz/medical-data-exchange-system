@@ -4,6 +4,8 @@ import pathlib
 import uuid
 
 from fastapi import FastAPI, Depends, HTTPException, Body, UploadFile, File
+from fastapi.staticfiles import StaticFiles
+
 from pydicom import dcmread
 from sqlalchemy.orm import Session
 from .schemas import (Card,
@@ -11,7 +13,6 @@ from .schemas import (Card,
                       CardOptional,
                       Page,
                       PageIn,
-                      PageShortOut,
                       FamilyStatus,
                       Education,
                       Busyness,
@@ -60,6 +61,9 @@ SessionLocal = DB_INITIALIZER.init_database(str(cfg.postgres_dsn))
 app = FastAPI(title='Medical Card Service',
               description=description,
               openapi_tags=tags_metadata)
+
+ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.parent.resolve()
+app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
 
 
 def get_db():
