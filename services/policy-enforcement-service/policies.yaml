@@ -1,12 +1,18 @@
 services:
     - name: template-service
-      entrypoint: http://template-service:5000/
+      entrypoint: http://template-service:5001/
       inject_token_in_swagger: True
     - name: medical-card-service
-      entrypoint: http://medical-card-service:5000/
+      entrypoint: http://medical-card-service:5002/
       inject_token_in_swagger: True
     - name: user-service
-      entrypoint: http://user-service:5000/
+      entrypoint: http://user-service:5003/
+      inject_token_in_swagger: True
+    - name: health-diary-service
+      entrypoint: http://health-diary-service:5004/
+      inject_token_in_swagger: True
+    - name: record-service
+      entrypoint: http://record-service:5005/
       inject_token_in_swagger: True
 model: |
     [request_definition]
@@ -22,9 +28,47 @@ model: |
     m = eval(p.sub_rule) && keyMatch(r.obj, p.obj) && regexMatch(r.act, p.act)
 policies:
     - service: template-service
-      rule: r.sub.group_id < 3
+      rule: r.sub.group_id == 1
       resource: /templates*
+      methods: (GET)|(POST)|(PATCH)|(DELETE)
+    - service: template-service
+      rule: r.sub.group_id == 2
+      resource: /templates*
+      methods: GET
+
+    - service: medical-card-service
+      rule: r.sub.group_id == 1
+      resource: /cards/*
+      methods: (GET)|(POST)|(PATCH)|(DELETE)
+    - service: medical-card-service
+      rule: r.sub.group_id == 1
+      resource: /family_status
+      methods: GET
+    - service: medical-card-service
+      rule: r.sub.group_id == 1
+      resource: /education
+      methods: GET
+    - service: medical-card-service
+      rule: r.sub.group_id == 1
+      resource: /busyness
+      methods: GET
+    - service: medical-card-service
+      rule: r.sub.group_id == 2
+      resource: /cards/*
+      methods: GET
+    - service: medical-card-service
+      rule: r.sub.group_id == 3
+      resource: /cards/user/*
+      methods: GET
+    - service: medical-card-service
+      rule: r.sub.group_id == 2
+      resource: /pages/*
       methods: (GET)|(POST)|(PUT)|(DELETE)
+    - service: medical-card-service
+      rule: r.sub.group_id == 2
+      resource: /documents*
+      methods: (GET)|(POST)|(PATCH)|(DELETE)
+
     - service: user-service
       rule: r.sub.group_id == 1
       resource: /groups*
@@ -39,33 +83,55 @@ policies:
       methods: (GET)|(POST)|(PUT)|(DELETE)
     - service: user-service
       rule: r.sub.group_id == 2
-      resource: /users/*
+      resource: /users
       methods: GET
-    - service: user-service
-      rule: r.sub.group_id == 2
-      resource: /users/me
-      methods: PUT
     - service: user-service
       rule: r.sub.group_id == 3
       resource: /users/me
-      methods: (GET)|(PUT)
-    - service: medical-card-service
+      methods: (GET)|(PATCH)
+    - service: user-service
+      rule: r.sub.group_id == 3
+      resource: /users/me/img
+      methods: (PATCH)|(DELETE)
+    - service: user-service
       rule: r.sub.group_id == 1
-      resource: /cards*
-      methods: (GET)|(POST)|(PUT)|(DELETE)
-    - service: medical-card-service
-      rule: r.sub.group_id == 2
-      resource: /cards*
-      methods: (GET)|(PUT)
-    - service: medical-card-service
+      resource: /specializations*
+      methods: (GET)|(POST)|(PATCH)|(DELETE)
+    - service: user-service
       rule: r.sub.group_id == 3
-      resource: /cards*
+      resource: /specializations*
       methods: GET
-    - service: medical-card-service
-      rule: r.sub.group_id < 3
-      resource: /pages*
-      methods: (GET)|(POST)|(PUT)|(DELETE)
-    - service: medical-card-service
+
+    - service: health-diary-service
+      rule: r.sub.group_id == 2
+      resource: /diaries/user/*
+      methods: GET
+    - service: health-diary-service
       rule: r.sub.group_id == 3
-      resource: /pages*
+      resource: /diaries/*
+      methods: (GET)|(POST)|(PATCH)|(DELETE)
+
+    - service: record-service
+      rule: r.sub.group_id == 1
+      resource: /schedules*
+      methods: (GET)|(POST)|(PATCH)|(DELETE)
+    - service: record-service
+      rule: r.sub.group_id == 1
+      resource: /records*
+      methods: (GET)|(POST)|(PATCH)|(DELETE)
+    - service: record-service
+      rule: r.sub.group_id == 2
+      resource: /records/doctor/*
+      methods: GET
+    - service: record-service
+      rule: r.sub.group_id == 3
+      resource: /records
+      methods: POST
+    - service: record-service
+      rule: r.sub.group_id == 3
+      resource: /records/user/*
+      methods: GET
+    - service: record-service
+      rule: r.sub.group_id == 3
+      resource: /schedules/dates
       methods: GET
