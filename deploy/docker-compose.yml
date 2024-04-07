@@ -30,18 +30,12 @@ volumes:
       o: bind
       type: none
       device: ./policy-enforcement-service
-  medical-docs-service-data:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ../services/medical-docs-service/storage
   medical-card-service-data:
     driver: local
     driver_opts:
       o: bind
       type: none
-      device: ./medical-card-service
+      device: ../services/medical-card-service/storage
 #  e2e-test-data:
 #    driver: local
 #    driver_opts:
