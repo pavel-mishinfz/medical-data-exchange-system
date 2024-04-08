@@ -1,6 +1,6 @@
 from typing import Tuple, Type
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource
-from pydantic import PostgresDsn, Field
+from pydantic import PostgresDsn, Field, SecretStr, HttpUrl
 
 
 class Config(BaseSettings):
@@ -8,6 +8,24 @@ class Config(BaseSettings):
         default='postgresql+asyncpg://user:pass@localhost:5432/foobar',
         env='POSTGRES_DSN_ASYNC',
         alias='POSTGRES_DSN_ASYNC'
+    )
+
+    CLIENT_ID: str = Field(
+        default='client_id',
+        env='CLIENT_ID',
+        alias='CLIENT_ID'
+    )
+
+    CLIENT_SECRET: SecretStr = Field(
+        default='client_secret',
+        env='CLIENT_SECRET',
+        alias='CLIENT_SECRET'
+    )
+
+    REDIRECT_URI: HttpUrl = Field(
+        default='http://127.0.0.1:8000/callback',
+        env='REDIRECT_URI',
+        alias='REDIRECT_URI'
     )
 
     model_config = SettingsConfigDict(env_file=".env")
