@@ -1,5 +1,4 @@
 import uuid
-from fastapi import UploadFile
 from .database import models
 from .schemas import ChatIn, MessageIn, MessageUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +21,7 @@ async def create_chat(session: AsyncSession, chat_in: ChatIn) -> models.Chat:
     return db_chat
 
 
-async def create_message(session: AsyncSession, message_in: MessageIn) -> models.Message:
+async def create_message(session: AsyncSession, message_in: MessageIn) -> models.Message | None:
     """
     Создает сообщение
     """
@@ -92,17 +91,66 @@ async def update_message(
 
 async def delete_message(
         session: AsyncSession, message_id: uuid.UUID
-    ) -> bool:
+    ) -> models.Message | None:
     """
     Удаляет информацию о сообщение
     """
 
-    has_message = await get_message(session, message_id)
-    await session.execute(delete(models.Message) \
-                          .filter(models.Message.id == message_id)
+    deleted_message = await get_message(session, message_id)
+    if deleted_message is None:
+        return None
+
+    await session.delete(deleted_message)
+    await session.commit()
+
+    return deleted_message
+
+
+async def create_file(
+    session: AsyncSession, message_id: uuid.UUID, file_name: str, path_to_file: str
+    ) -> models.MessageDocument:
+    """
+    Создает файл сообщения
+    """
+    db_file = models.MessageDocument(
+        name=file_name,
+        path_to_file=path_to_file,
+        id_message=message_id
+    )
+
+    session.add(db_file)
+    await session.commit()
+    await session.refresh(db_file)
+    return db_file
+
+
+async def get_file(
+        session: AsyncSession, 
+        file_id: uuid.UUID) -> models.MessageDocument | None:
+    """
+    Возвращает информацию о пложении
+    """ 
+    
+    result = await session.execute(select(models.MessageDocument) \
+                                   .filter(models.MessageDocument.id == file_id) \
+                                   .limit(1)
+                                   )
+    return result.scalars().one_or_none()
+
+
+async def delete_file(
+        session: AsyncSession, file_id: uuid.UUID
+    ) -> models.MessageDocument | None:
+    """
+    Удаляет информацию о вложении
+    """
+
+    deleted_file = await get_file(session, file_id)
+    await session.execute(delete(models.MessageDocument) \
+                          .filter(models.MessageDocument.id == file_id)
                           )
     await session.commit()
-    return bool(has_message)
+    return deleted_file
 
 
 async def get_list_chat(
