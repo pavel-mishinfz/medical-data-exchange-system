@@ -28,6 +28,12 @@ class Config(BaseSettings):
         alias='REDIRECT_URI'
     )
 
+    path_to_storage: str = Field(
+        default='storage/',
+        env='PATH_TO_STORAGE',
+        alias='PATH_TO_STORAGE'
+    )
+
     model_config = SettingsConfigDict(env_file=".env")
 
     @classmethod
