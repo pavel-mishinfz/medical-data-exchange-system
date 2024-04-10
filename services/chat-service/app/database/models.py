@@ -1,5 +1,6 @@
 import uuid
-from sqlalchemy import Column, Integer, UUID, Text, TIMESTAMP, func
+from sqlalchemy import Column, Integer, String, UUID, Text, TIMESTAMP, ForeignKey, func
+from sqlalchemy.orm import mapped_column, relationship
 
 from .database import Base
 
@@ -21,3 +22,13 @@ class Message(Base):
     chat_id = Column(Integer, nullable=False)
     send_date = Column(TIMESTAMP, default=func.now())
     update_date = Column(TIMESTAMP, default=None, onupdate=func.now())
+    documents = relationship('MessageDocument', backref='msg', lazy="selectin", cascade='all, delete')
+
+
+class MessageDocument(Base):
+    __tablename__ = "message_document"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    path_to_file = Column(String, nullable=False)
+    id_message = mapped_column(ForeignKey('message.id'), nullable=False)
