@@ -4,6 +4,17 @@ import uuid
 from pydantic import BaseModel, Field
 
 
+class MessageDocument(BaseModel):
+    """
+    Базовая модель вложения
+    """
+    name: str
+    path_to_file: str
+
+    class ConfiDict:
+        from_attribute = True
+        
+
 class MessageBase(BaseModel):
     """
     Базовая модель сообщения
@@ -28,6 +39,7 @@ class Message(MessageBase):
     """
     id: uuid.UUID
     sender_id: uuid.UUID = Field(title='Идентификатор отправителя')
+    documents: Optional[list[MessageDocument]] = None
     send_date: datetime.datetime
     update_date: Optional[datetime.datetime] = None
 
