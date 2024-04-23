@@ -15,6 +15,7 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     specialization_id: Optional[int] = Field(None, title='Специализация врача')
     img: Optional[str] = Field(None, title='Фотография пользователя')
     experience: Optional[int] = None
+    desc: Optional[str] = None
 
 
 class UserCreate(schemas.BaseUserCreate):
@@ -26,6 +27,7 @@ class UserCreate(schemas.BaseUserCreate):
     specialization_id: Optional[int] = None
     img: Optional[str] = None
     experience: Optional[int] = None
+    desc: Optional[str] = None
 
 
 class UserUpdate(schemas.BaseUserUpdate):
@@ -37,3 +39,4 @@ class UserUpdate(schemas.BaseUserUpdate):
     specialization_id: Optional[int] = None
     img: Optional[str] = None
     experience: Optional[int] = None
+    desc: Optional[str] = None

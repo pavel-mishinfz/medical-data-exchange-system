@@ -18,8 +18,9 @@ class User(SQLAlchemyBaseUserTableUUID, database.Base):
     patronymic = Column(String(length=128))
     birthday = Column(Date, nullable=False)
     specialization_id = mapped_column(ForeignKey("specialization.id"))
-    img = Column(String)
+    desc = Column(String)
     experience = Column(Integer)
+    img = Column(String)
     group_id = mapped_column(ForeignKey("group.id"), nullable=False)
     group = relationship("Group", uselist=False)
 
@@ -29,5 +30,5 @@ class Specialization(database.Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     name = Column(String, nullable=False)
-    doctors = relationship("User", backref="specialization", lazy="selectin"
-)
+    img = Column(String, nullable=False)
+    doctors = relationship("User", backref="specialization", lazy="selectin")
