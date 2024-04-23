@@ -27,6 +27,16 @@ class Specialization(SpecializationBase):
     """
     id: int
     name: str
+    img: str
+
+
+class SpecializationUpsert(SpecializationBase):
+    """
+    Модель для добавления/обновления специализации
+    """
+    id: int
+    name: str
+    img: str
 
 
 class SpecializationAndDoctors(SpecializationBase):
@@ -35,6 +45,7 @@ class SpecializationAndDoctors(SpecializationBase):
     """
     id: int
     name: str
+    img: str
     doctors: Optional[list[UserRead]] = Field(None, title='Список врачей данной специализации')
 
 

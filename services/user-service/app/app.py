@@ -263,13 +263,23 @@ async def on_startup():
     )
 
     groups = []
-    with open(app_config.default_groups_config_path) as f:
-        groups = json.load(f)
+    with open(app_config.default_groups_config_path, encoding="utf-8") as f:
+        groups = json.load(f)   
 
     async for session in database.get_async_session():
         for group in groups:
             await users.groupcrud.upsert_group(
                 session, schemas.group.GroupUpsert(**group)
+            )
+
+    specializations = []
+    with open(app_config.default_specializations_config_path, encoding="utf-8") as f:
+        specializations = json.load(f) 
+
+    async for session in database.get_async_session():
+        for specialization in specializations:
+            await users.crud_specialization.upsert_specialization(
+                session, schemas.specialization.SpecializationUpsert(**specialization)
             )
 
 

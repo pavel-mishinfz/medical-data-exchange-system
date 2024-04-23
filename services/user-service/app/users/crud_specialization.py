@@ -1,6 +1,7 @@
 import typing
 
 from sqlalchemy import delete, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database import models
@@ -34,6 +35,7 @@ async def get_specialization_list(
     result = await session.execute(select(models.Specialization) \
                                    .offset(skip) \
                                    .limit(limit)
+                                   .order_by(models.Specialization.name)
                                    )
     return result.scalars().all()
 
@@ -66,6 +68,26 @@ async def update_specialization(
     await session.commit()
     if result:
         return await get_specialization(session, specialization_id)
+    return None
+
+
+async def upsert_specialization(
+        session: AsyncSession, specialization: schemas.specialization.SpecializationUpsert
+    ) -> models.Specialization | None:
+    """
+    Обновляет или добавляет специализацию в базу
+    """
+
+    stm = insert(models.Specialization).values(specialization.model_dump())
+    stm = stm.on_conflict_do_update(
+        constraint='specialization_pkey',
+        set_={"name": specialization.name, "img": specialization.img}
+    )
+    result = await session.execute(stm)
+
+    await session.commit()
+    if result:
+        return await get_specialization(session, specialization.id)
     return None
 
 

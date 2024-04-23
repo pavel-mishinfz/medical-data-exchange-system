@@ -58,6 +58,12 @@ class Config(BaseSettings):
         alias='DEFAULT_GROUPS_CONFIG_PATH'
     )
 
+    default_specializations_config_path: FilePath = Field(
+        default='default-specializations.json',
+        env='DEFAULT_SPECIALIZATIONS_CONFIG_PATH',
+        alias='DEFAULT_SPECIALIZATIONS_CONFIG_PATH'
+    )
+
     path_to_storage: str = Field(
         default='storage/',
         env='PATH_TO_STORAGE',
