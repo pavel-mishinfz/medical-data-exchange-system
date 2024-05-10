@@ -5,6 +5,8 @@ import uuid
 
 from fastapi import FastAPI, Depends, HTTPException, Body, UploadFile, File
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+
 
 from pydicom import dcmread
 from sqlalchemy.orm import Session
@@ -13,6 +15,7 @@ from .schemas import (Card,
                       CardOptional,
                       Page,
                       PageIn,
+                      PageUpdate,
                       FamilyStatus,
                       Education,
                       Busyness,
@@ -61,6 +64,14 @@ SessionLocal = DB_INITIALIZER.init_database(str(cfg.postgres_dsn))
 app = FastAPI(title='Medical Card Service',
               description=description,
               openapi_tags=tags_metadata)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)              
 
 ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.resolve()
 app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
@@ -117,14 +128,12 @@ def update_card(
 @app.delete(
     '/cards/{card_id}',
     summary='Удаляет медкарту из базы',
-    response_model=Card,
     tags=["cards"]
     )
 def delete_card(card_id: int, db: Session = Depends(get_db)):
     deleted_card = crud.delete_card(db, card_id)
     if deleted_card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найден")
-    return deleted_card
 
 
 @app.get(
@@ -158,24 +167,29 @@ def add_page(card_id: int, template_id: int, page_in: PageIn, db: Session = Depe
     card = crud.get_card(db, card_id, None)
     if card:
         return crud.create_page(db, card_id, template_id, page_in)
-    raise HTTPException(status_code=404, detail="Медкарта не найден")
+    raise HTTPException(status_code=404, detail="Медкарта не найдена")
 
 
 @app.get('/pages/{page_id}', response_model=Page, summary='Возвращает страницу', tags=["pages"])
-def get_page(page_id: int, db: Session = Depends(get_db)):
+def get_page(page_id: uuid.UUID, db: Session = Depends(get_db)):
     page = crud.get_page(db, page_id)
     if page is None:
         raise HTTPException(status_code=404, detail="Страница не найдена")
     return page
 
 
+@app.get('/pages/card/{card_id}', response_model=list[Page], summary='Возвращает список страниц', tags=["pages"])
+def get_list_pages(card_id: int, db: Session = Depends(get_db)):
+    return crud.get_pages(db, card_id)
+
+
 @app.put('/pages/{page_id}', response_model=Page, summary='Обновляет страницу', tags=["pages"])
 def update_page(
-        page_id: int,
-        page_in: PageIn,
+        page_id: uuid.UUID,
+        page_update: PageUpdate,
         db: Session = Depends(get_db)
     ):
-    page = crud.update_page(db, page_id, page_in)
+    page = crud.update_page(db, page_id, page_update)
     if page is not None:
         return page
     raise HTTPException(status_code=404, detail="Страница не найдена")
@@ -187,7 +201,7 @@ def update_page(
     summary='Удаляет страницу из базы',
     tags=["pages"]
     )
-def delete_page(page_id: int, db: Session = Depends(get_db)):
+def delete_page(page_id: uuid.UUID, db: Session = Depends(get_db)):
     deleted_page, documents = crud.delete_page(db, page_id)
     if deleted_page is None:
         raise HTTPException(status_code=404, detail="Страница не найден")

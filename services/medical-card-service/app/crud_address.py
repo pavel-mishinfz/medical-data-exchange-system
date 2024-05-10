@@ -14,8 +14,7 @@ def create_address(db: Session, address_in: AddressIn) -> models.Address:
         locality=address_in.locality,
         street=address_in.street,
         house=address_in.house,
-        apartment=address_in.apartment,
-        phone=address_in.phone
+        apartment=address_in.apartment
     )
 
     db.add(db_address)

@@ -11,7 +11,7 @@ def create_disability(db: Session, disability_in: DisabilityIn) -> models.Disabi
     db_disability = models.Disability(
         name=disability_in.name,
         group=disability_in.group,
-        date=disability_in.date
+        create_date=disability_in.create_date
     )
 
     db.add(db_disability)

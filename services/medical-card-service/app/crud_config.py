@@ -29,7 +29,7 @@ def upsert_family_status(
     stm = insert(models.FamilyStatus).values(family_status.model_dump())
     stm = stm.on_conflict_do_update(
         constraint='family_status_pkey',
-        set_={"status": family_status.status}
+        set_={"name": family_status.name}
     )
     result = db.execute(stm)
 
@@ -61,7 +61,7 @@ def upsert_education(
     stm = insert(models.Education).values(education.model_dump())
     stm = stm.on_conflict_do_update(
         constraint='education_pkey',
-        set_={"type": education.type}
+        set_={"name": education.name}
     )
     result = db.execute(stm)
 
@@ -93,7 +93,7 @@ def upsert_busyness(
     stm = insert(models.Busyness).values(busyness.model_dump())
     stm = stm.on_conflict_do_update(
         constraint='busyness_pkey',
-        set_={"type": busyness.type}
+        set_={"name": busyness.name}
     )
     result = db.execute(stm)
 

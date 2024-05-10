@@ -1,4 +1,4 @@
-from .page import PageBase, Page, PageIn, PageShortOut
+from .page import PageBase, Page, PageIn, PageUpdate
 from .card import CardBase, Card, CardIn, CardOptional
 from .address import AddressBase, AddressIn, AddressOptional
 from .passport import PassportBase, PassportIn, PassportOptional
@@ -12,7 +12,7 @@ __all__ = [
     PageBase,
     Page,
     PageIn,
-    PageShortOut,
+    PageUpdate,
     CardBase,
     Card,
     CardIn,

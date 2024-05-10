@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, UUID, Date, Boolean, Date, CHAR, Text
+import uuid
+
+from sqlalchemy import Column, Integer, String, ForeignKey, UUID, Date, Boolean, DateTime, CHAR, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column, relationship
 
@@ -8,11 +10,12 @@ from .database import Base
 class Page(Base):
     __tablename__ = "pages"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     data = Column(JSONB)
     id_template = Column(Integer, nullable=False)
     id_card = mapped_column(ForeignKey("cards.id"), nullable=False)
-    create_date = Column(Date, nullable=False)
+    id_doctor = Column(UUID(as_uuid=True), nullable=False)
+    create_date = Column(DateTime(timezone=True), nullable=False)
     card = relationship("Card", back_populates='pages')
     documents = relationship("Document", backref='page', cascade='all, delete-orphan')
 
@@ -28,6 +31,7 @@ class Card(Base):
     is_man = Column(Boolean, nullable=False)
     birthday = Column(Date, nullable=False)
     id_address = mapped_column(ForeignKey('address.id'), nullable=False)
+    phone = Column(String(length=12), nullable=False, unique=True)
     is_urban_area = Column(Boolean, nullable=False)
     number_policy = Column(CHAR(length=16), nullable=False, unique=True)
     snils = Column(CHAR(length=14), nullable=False, unique=True)
@@ -74,7 +78,6 @@ class Address(Base):
     street = Column(String(length=128), nullable=False)
     house = Column(Integer, nullable=False)
     apartment = Column(Integer)
-    phone = Column(String(length=12), nullable=False)
 
 
 class Passport(Base):
@@ -89,21 +92,21 @@ class FamilyStatus(Base):
     __tablename__ = 'family_status'
 
     id = Column(Integer, primary_key=True, index=True)
-    status = Column(String(length=50), nullable=False)
+    name = Column(String(length=50), nullable=False)
 
 
 class Education(Base):
     __tablename__ = 'education'
 
     id = Column(Integer, primary_key=True, index=True)
-    type = Column(String(length=30), nullable=False)
+    name = Column(String(length=30), nullable=False)
 
 
 class Busyness(Base):
     __tablename__ = 'busyness'
 
     id = Column(Integer, primary_key=True, index=True)
-    type = Column(String(length=128), nullable=False)
+    name = Column(String(length=128), nullable=False)
 
 
 class Disability(Base):
@@ -112,4 +115,4 @@ class Disability(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     group = Column(Integer, nullable=False)
-    date = Column(Date, nullable=False)
+    create_date = Column(Date, nullable=False)

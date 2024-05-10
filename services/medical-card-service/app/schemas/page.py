@@ -1,3 +1,5 @@
+import uuid
+
 from datetime import datetime
 from typing import Optional
 
@@ -20,6 +22,13 @@ class PageIn(PageBase):
     """
     Модель для добавления страницы
     """
+    id_doctor: uuid.UUID
+
+
+class PageUpdate(PageBase):
+    """
+    Модель для обновления страницы
+    """
     pass
 
 
@@ -27,17 +36,8 @@ class Page(PageBase):
     """
     Модель используемая при запросе информации о странице
     """
-    id: int = Field(title='Идентификатор страницы')
+    id: uuid.UUID = Field(title='Идентификатор страницы')
     id_template: int = Field(title='Идентификатор шаблона страницы')
+    id_doctor: uuid.UUID
     create_date: datetime = Field(title='Дата создания страницы')
     documents: Optional[list[Document]] = Field(None, title='Документы страницы')
-
-
-class PageShortOut(BaseModel):
-    """
-    Модель используемая при запросе информации об идентификаторе страницы
-    """
-    id: int = Field(title='Идентификатор страницы')
-
-    class ConfigDict:
-        from_attribute = True

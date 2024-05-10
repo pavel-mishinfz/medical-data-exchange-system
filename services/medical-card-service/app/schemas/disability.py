@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 class DisabilityBase(BaseModel):
     name: Optional[str] = None
     group: Optional[int] = None
-    date: Optional[datetime] = None
+    create_date: Optional[date] = None
 
     class ConfigDict:
         from_attribute = True
@@ -16,7 +16,7 @@ class DisabilityBase(BaseModel):
 class DisabilityIn(DisabilityBase):
     name: str = Field(title='Наименование')
     group: int = Field(title='Группа')
-    date: datetime = Field(title='Дата установления инвалидности')
+    create_date: date = Field(title='Дата установления инвалидности')
 
 
 class DisabilityOptional(DisabilityBase):

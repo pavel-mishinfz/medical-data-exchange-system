@@ -1,4 +1,4 @@
-import json
+import json, uuid
 from datetime import datetime
 from typing import Optional
 
@@ -21,7 +21,7 @@ class DocumentIn(DocumentBase):
     Модель для добавления меддокумента
     """
     name: str = Field(title='Название документа')
-    id_page: int = Field(title='Идентификатор страницы, к которой прикреплен документ')
+    id_page: uuid.UUID = Field(title='Идентификатор страницы, к которой прикреплен документ')
 
     @model_validator(mode='before')
     @classmethod
@@ -36,7 +36,7 @@ class Document(DocumentBase):
     Модель используемая при запросе информации о меддокументе
     """
     id: int = Field(title='Идентификатор документа')
-    id_page: int
+    id_page: uuid.UUID
     path_to_file: str = Field(title='Путь до файла меддокумента')
     create_date: datetime = Field(title='Дата создания меддокумента')
 

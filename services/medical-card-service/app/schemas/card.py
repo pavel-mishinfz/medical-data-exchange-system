@@ -1,4 +1,6 @@
-from datetime import datetime
+import uuid
+
+from datetime import date
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -8,7 +10,6 @@ from .disability import DisabilityIn, DisabilityOptional
 from .family_status import FamilyStatus
 from .education import Education
 from .busyness import Busyness
-from .page import PageShortOut
 
 
 class CardBase(BaseModel):
@@ -19,8 +20,9 @@ class CardBase(BaseModel):
     surname: Optional[str] = None
     patronymic: Optional[str] = Field(title='Отчество', default=None)
     is_man: Optional[bool] = None
-    birthday: Optional[datetime] = None
+    birthday: Optional[date] = None
     address: Optional[AddressOptional] = None
+    phone: Optional[str] = None
     is_urban_area: Optional[bool] = None
     number_policy: Optional[str] = Field(title='Номер полиса', min_length=16, max_length=16, default=None)
     snils: Optional[str] = Field(title='СНИЛС', min_length=14, max_length=14, default=None)
@@ -45,8 +47,9 @@ class CardIn(CardBase):
     name: str = Field(title='Имя')
     surname: str = Field(title='Фамилия')
     is_man: bool = Field(title='Пол')
-    birthday: datetime = Field(title='Дата рождения')
+    birthday: date = Field(title='Дата рождения')
     address: AddressIn = Field(title='Место регистрации')
+    phone: str = Field(title='Номер телефона', min_length=11, max_length=12)
     is_urban_area: bool = Field(title='Сельская/городская местность')
     number_policy: str = Field(title='Номер полиса', min_length=16, max_length=16)
     snils: str = Field(title='СНИЛС', min_length=14, max_length=14)
@@ -62,11 +65,11 @@ class Card(CardBase):
     Модель используемая при запросе информации о медкарте
     """
     id: int = Field(title='Идентификатор медкарты')
+    id_user: uuid.UUID
     family_status: FamilyStatus
     education: Education
     busyness: Busyness
-    create_date: datetime = Field(title='Дата создания медкарты')
-    pages: Optional[list[PageShortOut]] = Field(None, title='Идентификаторы страниц медкарты')
+    create_date: date = Field(title='Дата создания медкарты')
 
 
 class CardOptional(CardBase):

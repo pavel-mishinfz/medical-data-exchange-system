@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from .database import models
-from .schemas import PageIn, CardIn, CardOptional
+from .schemas import PageIn, PageUpdate, CardIn, CardOptional, DisabilityIn
 
 from . import crud_address
 from . import crud_passport
@@ -34,6 +34,7 @@ def create_card(
         is_man=card_in.is_man,
         birthday=card_in.birthday,
         id_address=address.id,
+        phone=card_in.phone,
         is_urban_area=card_in.is_urban_area,
         number_policy=card_in.number_policy,
         snils=card_in.snils,
@@ -97,8 +98,18 @@ def update_card(
         updated_passport = crud_passport.update_passport(db, id_passport, card_optional.passport)
         id_passport = updated_passport.id
     if card_optional.disability:
-        updated_disability = crud_disability.update_disability(db, id_disability, card_optional.disability)
-        id_disability = updated_disability.id
+        if None in dict(card_optional.disability).values():
+            crud_disability.delete_disability(db, id_disability)
+            id_disability = None
+        else:
+            disability = crud_disability.update_disability(db, id_disability, card_optional.disability)
+            if disability is None:
+                disability = crud_disability.create_disability(db, DisabilityIn(
+                    name=card_optional.disability.name, 
+                    group=card_optional.disability.group, 
+                    create_date=card_optional.disability.create_date)
+                    )
+            id_disability = disability.id
 
     force_update_fields = {
         'id_address': id_address,
@@ -140,6 +151,7 @@ def create_page(
     db_page = models.Page(
         id_card=card_id,
         id_template=template_id,
+        id_doctor=page_in.id_doctor,
         data=page_in.data,
         create_date=datetime.now(timezone.utc)
     )
@@ -152,7 +164,7 @@ def create_page(
 
 
 def get_page(
-        db: Session, page_id: int
+        db: Session, page_id: uuid.UUID
     ) -> models.Page | None:
     """
     Возвращает конкретную старницу медкарты
@@ -170,19 +182,19 @@ def get_pages(
     """
     return db.query(models.Page) \
         .filter(models.Page.id_card == card_id) \
-        .order_by(models.Page.id) \
+        .order_by(models.Page.create_date.asc()) \
         .all()
 
 
 def update_page(
-        db: Session, page_id: int, page_in: PageIn
+        db: Session, page_id: uuid.UUID, page_update: PageUpdate
     ) -> models.Page | None:
     """
     Обновляет информацию о старнице
     """
     result = db.query(models.Page) \
         .filter(models.Page.id == page_id) \
-        .update(page_in.model_dump())
+        .update(page_update.model_dump())
     db.commit()
 
     if result == 1:
@@ -191,7 +203,7 @@ def update_page(
 
 
 def delete_page(
-        db: Session, page_id: int
+        db: Session, page_id: uuid.UUID
     ) -> tuple[models.Page, models.Document] | tuple[None, None]:
     """
     Удаляет информацию о странице
