@@ -1,6 +1,4 @@
-import json
-
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 
 class TemplateBase(BaseModel):
@@ -8,32 +6,35 @@ class TemplateBase(BaseModel):
     Базовая модель шаблона
     """
     name: str = Field(title='Название шаблона')
+    structure: list[dict] = Field(title='Поля страницы шаблона', default=[
+        {
+            "title": "",
+            "divider": "",
+            "body": "",
+            "fields": [
+                {
+                    "title": None,
+                    "type": "",
+                    "name": "",
+                    "value": ""
+                }
+            ]
+        }
+    ])
 
     class ConfigDict:
         from_attribute = True
 
 
-class TemplateOut(TemplateBase):
-    """
-    Модель используемая при запросе информации о шаблоне для пользователя
-    """
-    id: int = Field(title='Идентификатор шаблона')
-
-
-class Template(TemplateOut):
+class Template(TemplateBase):
     """
     Модель используемая при запросе информации о шаблоне
     """
-    path_to_file: str = Field(title='Путь к файлу')
+    id: int = Field(title='Идентификатор шаблона')
 
 
 class TemplateIn(TemplateBase):
     """
     Модель для добавления/обновления шаблона
     """
-    @model_validator(mode='before')
-    @classmethod
-    def validate_to_json(cls, value):
-        if isinstance(value, str):
-            return cls(**json.loads(value))
-        return value
+    pass

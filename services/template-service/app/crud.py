@@ -7,14 +7,13 @@ from .schemas import TemplateIn
 
 
 def create_template(
-        db: Session, template_in: TemplateIn, path_to_file: str
+        db: Session, template_in: TemplateIn
     ) -> models.Template:
     """
     Создает новый шаблон в БД
     """
     db_template = models.Template(
-        name=template_in.name,
-        path_to_file=path_to_file
+        **template_in.model_dump()
     )
 
     db.add(db_template)
@@ -27,7 +26,7 @@ def get_templates(db: Session) -> list[models.Template]:
     """
     Возвращает все шаблоны
     """
-    return db.query(models.Template).all()
+    return db.query(models.Template).order_by(models.Template.name).all()
 
 
 def get_template(
@@ -49,7 +48,7 @@ def update_template(
     """
     result = db.query(models.Template) \
         .filter(models.Template.id == template_id) \
-        .update({models.Template.name: template_in.name})
+        .update(template_in.model_dump())
     db.commit()
 
     if result == 1:
