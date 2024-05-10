@@ -1,5 +1,5 @@
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import Column, ForeignKey, Integer, String, Date
+from sqlalchemy import Column, ForeignKey, Integer, String, Date, DateTime
 from sqlalchemy.orm import mapped_column, relationship
 
 from . import database
@@ -25,10 +25,17 @@ class User(SQLAlchemyBaseUserTableUUID, database.Base):
     group = relationship("Group", uselist=False)
 
 
+class ConfirmCode(database.Base):
+    __tablename__ = "confirm_code"
+
+    user_id = mapped_column(ForeignKey("user.id"), primary_key=True, nullable=False, unique=True)
+    code = Column(String(length=6), nullable=False)
+    create_date = Column(DateTime(timezone=True), nullable=False)
+
+
 class Specialization(database.Base):
     __tablename__ = 'specialization'
 
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     name = Column(String, nullable=False)
     img = Column(String, nullable=False)
-    doctors = relationship("User", backref="specialization", lazy="selectin")
