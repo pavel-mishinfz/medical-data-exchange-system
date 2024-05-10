@@ -2,15 +2,19 @@ import json
 import os
 import pathlib
 import uuid
+import asyncio
+from datetime import datetime, timezone, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import config, users
 from .users import schemas
 from .users.database import database
+from .users.userapp import fastapi_users
 
 
 app_config: config.Config = config.load_config()
@@ -55,6 +59,14 @@ tags_metadata = [
 app = FastAPI(title='User Service',
               description=description,
               openapi_tags=tags_metadata)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.resolve()
 app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
@@ -132,52 +144,132 @@ async def delete_group(
     return HTTPException(status_code=404, detail="Группа не найдена")
 
 
+@app.get(
+    "/users/specialization/{specialization_id}", response_model=list[schemas.user.UserRead],
+    summary="Возвращает список врачей конкретной специализации", tags=["users"]
+    )
+async def get_doctors_of_specialization(
+    specialization_id: int, session: AsyncSession = Depends(database.get_async_session)
+    ):
+    return await users.crud_user.get_doctors_of_specialization(specialization_id, session)
+
+
 @app.patch(
-    "/users/me/img",
+    "/users/me/image",
     response_model=schemas.user.UserRead,
     summary='Обновляет фотографию в профиле пользователя',
     tags=['users']
     )
-async def update_img_user(
+async def update_user_image(
     file: UploadFile,
-    user_id: uuid.UUID,
+    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True, verified=True)),
     session: AsyncSession = Depends(database.get_async_session)
-    ):
-    if file.content_type in ['image/png', 'image/jpeg']:
-        user = await users.crud_user.get_user(user_id, session)
-        path_to_file = user.img
-        if path_to_file is None:
-            path_to_file = make_path_to_file(app_config.path_to_storage, file.filename)
-        make_img_file(path_to_file, file)
-        return await users.crud_user.update_img(path_to_file, user_id, session)
-    raise HTTPException(status_code=400, detail="Недопустимый тип файла")
+):
+    if file.content_type not in ['image/png', 'image/jpeg']:
+        raise HTTPException(status_code=400, detail="Недопустимый тип файла")
+    file_path = current_user.img
+    if file_path is not None:
+        os.remove(file_path)
+    file_path = make_path_to_file(app_config.path_to_storage, file.filename)
+    make_img_file(file_path, file)
+    return await users.crud_user.update_img(file_path, current_user.id, session)
 
 
 @app.delete(
-    "/users/me/img",
+    "/users/me/image",
     response_model=schemas.user.UserRead,
     summary='Удаляет фотографию в профиле пользователя',
     tags=['users']
     )
-async def delete_img_user(
-    user_id: uuid.UUID,
+async def delete_user_image(
+    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True, verified=True)),
     session: AsyncSession = Depends(database.get_async_session)
-    ):
-    user = await users.crud_user.get_user(user_id, session)
-    img = user.img
-    if img is not None:
-        os.remove(img)
-    return await users.crud_user.update_img(None, user_id, session)
+):
+    file_path = current_user.img
+    if file_path is not None:
+        os.remove(file_path)
+    return await users.crud_user.update_img(None, current_user.id, session)
+
+
+@app.patch(
+    "/users/{id}/image",
+    response_model=schemas.user.UserRead,
+    summary='Обновляет фотографию пользователя',
+    dependencies=[Depends(fastapi_users.current_user(active=True, verified=True, superuser=True))],
+    tags=['users']
+    )
+async def update_user_image_by_id(
+    id: uuid.UUID,
+    file: UploadFile,
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    user = await users.crud_user.get_user(id, session)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    if file.content_type not in ['image/png', 'image/jpeg']:
+        raise HTTPException(status_code=400, detail="Недопустимый тип файла")
+    file_path = user.image
+    if file_path is not None:
+        os.remove(file_path)
+    file_path = make_path_to_file(app_config.path_to_storage, file.filename)
+    make_img_file(file_path, file)
+    return await users.crud_user.update_img(file_path, user.id, session)
+
+
+@app.delete(
+    "/users/{id}/image",
+    response_model=schemas.user.UserRead,
+    summary='Удаляет фотографию пользователя',
+    dependencies=[Depends(fastapi_users.current_user(active=True, verified=True, superuser=True))],
+    tags=['users']
+    )
+async def delete_user_image_by_id(
+    id: uuid.UUID,
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    user = await users.crud_user.get_user(id, session)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    file_path = user.image
+    if file_path is not None:
+        os.remove(file_path)
+    return await users.crud_user.update_image(None, user.id, session)
 
 
 @app.get(
-    "/users", response_model=list[schemas.user.UserRead],
-    summary="Возвращает список всех пользователей", tags=["users"]
+    "/users/me",
+    response_model=schemas.user.UserRead,
+    summary="Возвращает текущего пользователя",
+    tags=["users"]
     )
-async def get_list_users(
+async def get_user_me_overload(
+    user: database.models.User = Depends(fastapi_users.current_user(active=True, verified=True))
+):
+    return user
+
+
+@app.get(
+    "/users/{id}",
+    response_model=schemas.user.UserRead,
+    summary="Возвращает пользователя по id",
+    dependencies=[Depends(fastapi_users.authenticator.current_user(active=True, verified=True))],
+    tags=["users"]
+    )
+async def get_user_overload(
+    id: uuid.UUID,
     session: AsyncSession = Depends(database.get_async_session)
-    ):
-    return users.crud_user.get_users_list(session)
+):
+    return await users.crud_user.get_user(id, session)
+
+
+# @app.get(
+#     "/users", response_model=list[schemas.user.UserRead],
+#     summary="Возвращает список всех пользователей", tags=["users"]
+#     )
+# async def get_list_users(
+#     session: AsyncSession = Depends(database.get_async_session)
+#     ):
+#     return users.crud_user.get_users_list(session)
 
 
 @app.post(
@@ -210,7 +302,7 @@ async def get_specialization_list(
 
 
 @app.get("/specializations/{specialization_id}",
-         response_model=schemas.specialization.SpecializationAndDoctors,
+         response_model=schemas.specialization.Specialization,
          summary='Возвращает информацию о специализации',
          tags=['specialization'])
 async def get_specialization(
@@ -256,6 +348,45 @@ async def delete_specialization(
     return HTTPException(status_code=404, detail="Специализация не найдена")
 
 
+@app.post(
+    "/send_confirm_code", status_code=201,
+    summary='Создает новый код подтвержения',
+    tags=['confirm_code']
+)
+async def add_confirm_code(
+    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True, verified=True)),
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    confirm_code = await users.crud_confirm_code.upsert_confirm_code(session, current_user.id)
+    message = make_template_change_email(code=confirm_code.code)
+    await users.usermanager.send_email(message=message, subject='Изменение почты', to=current_user.email)
+
+
+@app.post(
+    "/check_confirm_code", status_code=201,
+    summary='Проверяет код подтвержения',
+    tags=['confirm_code']
+)
+async def check_confirm_code(
+    code: str,
+    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True, verified=True)),
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    date = datetime.now(timezone.utc)
+    correct_code = await users.crud_confirm_code.get_confirm_code(session, current_user.id)
+    if (date - correct_code.create_date).seconds > 180:
+        raise HTTPException(status_code=404, detail="Код истек")
+    if code != correct_code.code:
+        raise HTTPException(status_code=404, detail="Неверный код")
+
+
+app.include_router(
+    fastapi_users.get_users_router(schemas.user.UserRead, schemas.user.UserUpdate),
+    prefix="/users",
+    tags=["users"],
+)
+
+
 @app.on_event("startup")
 async def on_startup():
     await database.DB_INITIALIZER.init_database(
@@ -282,6 +413,8 @@ async def on_startup():
                 session, schemas.specialization.SpecializationUpsert(**specialization)
             )
 
+    asyncio.create_task(delete_old_confirmation_codes())        
+
 
 def make_path_to_file(path_to_storage, file_name):
     extension = pathlib.Path(file_name).suffix
@@ -295,3 +428,28 @@ def make_img_file(path_to_file, file):
             out_file.write(file.file.read())
     except Exception:
         raise HTTPException(status_code=500, detail="Ошибка при работе с файлом")
+
+
+def make_template_change_email(code: str):
+    return f"""
+    <html>
+        <body>
+            <div style="background-color:#fff;padding:20px">
+                <h1>Код подтверждения</h1>
+                <p style="display:block;font-size:24px;padding:10px;width: 80px;
+                border-radius: 15px;background-color: #d2cece;">
+                    {code}
+                </p>
+            </div>
+        </body>
+    </html>
+    """
+
+async def delete_old_confirmation_codes():
+    async for session in users.models.get_async_session():
+        while True:
+            expired_time = datetime.now() - timedelta(seconds=180)
+            codes_to_delete = await users.crud_confirm_code.get_old_confirm_codes(session, expired_time)
+            for code in codes_to_delete:
+                await users.crud_confirm_code.delete_confirm_code(session, code.user_id)
+            await asyncio.sleep(60)
