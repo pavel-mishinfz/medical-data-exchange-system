@@ -63,8 +63,3 @@ def include_routers(app: FastAPI):
         prefix="/auth",
         tags=["auth"],
     )
-    app.include_router(
-        fastapi_users.get_users_router(schemas.user.UserRead, schemas.user.UserUpdate),
-        prefix="/users",
-        tags=["users"],
-    )
