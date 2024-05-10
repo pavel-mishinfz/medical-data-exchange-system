@@ -20,15 +20,28 @@ async def get_user(
     return result.scalars().one_or_none()
 
 
-async def get_users_list(
+async def get_doctors_of_specialization(
+        specialization_id: int,
         session: AsyncSession
     ) -> list[models.User]:
     """
-    Возвращает список пользователей
+    Возвращает список врачей конкретной специализации
     """
 
-    result = await session.execute(select(models.User))
+    result = await session.execute(select(models.User) \
+                                   .filter(models.User.specialization_id == specialization_id))
     return result.scalars().all()
+
+
+# async def get_users_list(
+#         session: AsyncSession
+#     ) -> list[models.User]:
+#     """
+#     Возвращает список пользователей
+#     """
+
+#     result = await session.execute(select(models.User))
+#     return result.scalars().all()
 
 
 async def update_img(
