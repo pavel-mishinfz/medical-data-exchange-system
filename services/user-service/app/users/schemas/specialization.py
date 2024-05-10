@@ -1,8 +1,6 @@
 from typing import Optional
 from pydantic import Field, BaseModel
 
-from .user import UserRead
-
 
 class SpecializationBase(BaseModel):
     """
@@ -37,16 +35,6 @@ class SpecializationUpsert(SpecializationBase):
     id: int
     name: str
     img: str
-
-
-class SpecializationAndDoctors(SpecializationBase):
-    """
-    Модель используемая при запросе информации о специализации и врачах
-    """
-    id: int
-    name: str
-    img: str
-    doctors: Optional[list[UserRead]] = Field(None, title='Список врачей данной специализации')
 
 
 class SpecializationOptional(SpecializationBase):
