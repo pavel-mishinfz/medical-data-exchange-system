@@ -3,6 +3,7 @@ import uuid
 import datetime
 
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from .schemas import (Record,
@@ -34,6 +35,14 @@ cfg: config.Config = config.load_config()
 app = FastAPI(title='Record Service',
               description=description,
               openapi_tags=tags_metadata)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -135,15 +144,11 @@ async def get_schedule(schedule_id: int, db: AsyncSession = Depends(get_async_se
 
 @app.get(
     '/schedules/doctor/{doctor_id}',
-    response_model=Schedule,
-    summary='Возвращает график работы по id врача',
+    summary='Возвращает доступные даты для записи на прием',
     tags=["schedules"]
 )
 async def get_schedule(doctor_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
-    schedule = await crud.get_schedule(db, schedule_id=None, doctor_id=doctor_id)
-    if schedule is None:
-        raise HTTPException(status_code=404, detail="График не найден")
-    return schedule
+    return await get_available_dates_and_times(doctor_id, db)
 
 
 @app.patch(
@@ -176,27 +181,6 @@ async def delete_schedule(schedule_id: int, db: AsyncSession = Depends(get_async
     return deleted_schedule
 
 
-@app.get(
-    '/schedules/dates',
-    response_model=dict,
-    summary='Возвращает доступные для записи даты и время',
-    tags=["schedules"]
-)
-async def get_available_dates_and_times(
-        schedule_in: ScheduleIn,
-        db: AsyncSession = Depends(get_async_session)
-    ):
-    if schedule_in is None:
-        raise HTTPException(status_code=404, detail="График не найден")
-    schedule = dict(schedule_in.schedule)
-    records = await get_records(db, schedule_in.id_doctor)
-    available_dates = await make_available_dates(schedule)
-    available_dates_and_times = await make_available_dates_and_times(
-        records, available_dates, schedule, schedule_in.time_per_patient
-    )
-    return available_dates_and_times
-
-
 @app.on_event("startup")
 async def on_startup():
     await DB_INITIALIZER.init_database(
@@ -204,8 +188,20 @@ async def on_startup():
     )
 
 
-async def convert_date_to_string(date):
-    return date.strftime("%a. %d.%m")
+async def get_available_dates_and_times(
+        doctor_id: uuid.UUID,
+        db: AsyncSession = Depends(get_async_session)
+    ):
+    model_schedule = await crud.get_schedule(db, schedule_id=None, doctor_id=doctor_id)
+    if model_schedule is None:
+        raise HTTPException(status_code=404, detail="График не найден")
+    schedule = dict(model_schedule.schedule)
+    records = await get_records(db, model_schedule.id_doctor)
+    available_dates = await make_available_dates(schedule)
+    available_dates_and_times = await make_available_dates_and_times(
+        records, available_dates, schedule, model_schedule.time_per_patient
+    )
+    return available_dates_and_times
 
 
 async def convert_string_to_time(string):
@@ -217,7 +213,7 @@ async def get_records(db, id_doctor):
     list_model_record = await crud.get_record_list(db=db, doctor_id=id_doctor)
     for model_record in list_model_record:
         model_record = model_record.__dict__
-        date = await convert_date_to_string(model_record['date'])
+        date = model_record['date']
         time = await convert_string_to_time(model_record['time'])
         if date in records.keys():
             records[date].append(time)
@@ -227,8 +223,8 @@ async def get_records(db, id_doctor):
 
 
 async def make_current_and_deadline_dates():
-    current_date = datetime.datetime.today()
-    deadline_date = current_date + datetime.timedelta(days=30)
+    current_date = datetime.date.today()
+    deadline_date = current_date + datetime.timedelta(days=14)
     return current_date, deadline_date
 
 
@@ -238,9 +234,9 @@ async def make_available_dates(schedule):
     available_dates = {}
     while current_date <= deadline_date:
         weekday = current_date.weekday().__str__()
-        if schedule.get(weekday):
-            date = await convert_date_to_string(current_date)
-            available_dates[date] = weekday
+        # if schedule.get(weekday):
+        date = current_date
+        available_dates[date] = weekday
         current_date += datetime.timedelta(days=1)
     return available_dates
 
@@ -266,8 +262,11 @@ async def make_available_dates_and_times(records, available_dates, schedule, tim
     available_dates_and_times = {}
     for date, weekday in available_dates.items():
         time = schedule.get(weekday)
-        list_unavailable_times = records.get(date)
-        available_dates_and_times[date] = await make_list_available_times(
-            time, time_per_patient, list_unavailable_times
-        )
+        if time is None:
+            available_dates_and_times[date] = []    
+        else:
+            list_unavailable_times = records.get(date)
+            available_dates_and_times[date] = await make_list_available_times(
+                time, time_per_patient, list_unavailable_times
+            )
     return available_dates_and_times

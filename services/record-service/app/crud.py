@@ -45,9 +45,12 @@ async def get_record_list(
     Возвращает список записей на приемы для пациента/врача
     """
     result = await db.execute(select(models.Record) \
-                              .filter(models.Record.id_user == user_id,
-                                      models.Record.id_doctor == doctor_id,
-                                      models.Record.date >= datetime.datetime.today().date())
+                              .filter(
+                                  or_ (
+                                      models.Record.id_user == user_id,
+                                      models.Record.id_doctor == doctor_id
+                                      ))
+                              .filter(models.Record.date >= datetime.datetime.today().date())  
                               )
     return result.scalars().all()
 
