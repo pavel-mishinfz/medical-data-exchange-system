@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Annotated
+import uuid
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -39,7 +40,7 @@ class PageDiary(PageDiaryBase):
     """
     Модель используемая при запросе информации о странице дневника
     """
-    id: int = Field(title='Идентификатор страницы')
+    id: uuid.UUID = Field(title='Идентификатор страницы')
     create_date: datetime = Field(title='Дата создания страницы дневника')
 
     @field_validator('temperature', 'sugar_level')

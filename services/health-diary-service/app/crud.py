@@ -29,10 +29,10 @@ async def create_page_diary(
     await db.commit()
     await db.refresh(db_page_diary)
     return db_page_diary
-
+ 
 
 async def get_page_diary(
-        db: AsyncSession, page_diary_id: int
+        db: AsyncSession, page_diary_id: uuid.UUID
     ) -> models.PageDiary | None:
     """
     Возвращает страницу дневника
@@ -52,12 +52,12 @@ async def get_page_diary_list(
     """
     result = await db.execute(select(models.PageDiary) \
                               .filter(models.PageDiary.id_user == user_id) \
-                              .order_by(models.PageDiary.create_date.asc()))
+                              .order_by(models.PageDiary.create_date.desc()))
     return result.scalars().all()
 
 
 async def update_page_diary(
-        db: AsyncSession, page_diary_id: int, page_diary_optional: PageDiaryOptional
+        db: AsyncSession, page_diary_id: uuid.UUID, page_diary_optional: PageDiaryOptional
     ) -> models.PageDiary | None:
     """
     Обновляет информацию о старнице
@@ -74,7 +74,7 @@ async def update_page_diary(
 
 
 async def delete_page_diary(
-        db: AsyncSession, page_diary_id: int
+        db: AsyncSession, page_diary_id: uuid.UUID
     ) -> models.PageDiary | None:
     """
     Удаляет информацию о странице дневника

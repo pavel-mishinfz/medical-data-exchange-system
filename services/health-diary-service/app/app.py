@@ -1,6 +1,8 @@
 import uuid
 
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from .schemas import PageDiary, PageDiaryIn, PageDiaryOptional
 from .database import DB_INITIALIZER, get_async_session
@@ -41,6 +43,14 @@ app = FastAPI(title='Health Diary Service',
               description=description,
               openapi_tags=tags_metadata)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.post(
     '/diaries/user/{user_id}',
@@ -58,7 +68,7 @@ async def add_diary(user_id: uuid.UUID, page_diary_in: PageDiaryIn, db: AsyncSes
     summary='Возвращает страницу дневника',
     tags=["diaries"]
 )
-async def get_diary(page_diary_id: int, db: AsyncSession = Depends(get_async_session)):
+async def get_diary(page_diary_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
     page_diary = await crud.get_page_diary(db, page_diary_id)
     if page_diary is None:
         raise HTTPException(status_code=404, detail="Страница не найдена")
@@ -85,7 +95,7 @@ async def get_diary_list(
     tags=["diaries"]
 )
 async def update_page(
-        page_diary_id: int,
+        page_diary_id: uuid.UUID,
         page_diary_optional: PageDiaryOptional,
         db: AsyncSession = Depends(get_async_session)
 ):
@@ -101,7 +111,7 @@ async def update_page(
     response_model=PageDiary,
     tags=["diaries"]
 )
-async def delete_diary(page_diary_id: int, db: AsyncSession = Depends(get_async_session)):
+async def delete_diary(page_diary_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
     deleted_page_diary = await crud.delete_page_diary(db, page_diary_id)
     if deleted_page_diary is None:
         raise HTTPException(status_code=404, detail="Страница не найдена")
