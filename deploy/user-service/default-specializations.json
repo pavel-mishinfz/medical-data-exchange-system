@@ -1,0 +1,132 @@
+[
+    {
+        "id": 1,
+        "name": "Аллергология",
+        "img": "storage/specializations/Allergology.svg"
+    },
+    {
+        "id": 2,
+        "name": "Кардиология",
+        "img": "storage/specializations/Cardiology.svg"
+    },
+    {
+        "id": 3,
+        "name": "Колопроктология",
+        "img": "storage/specializations/Coloproctology.svg"
+    },
+    {
+        "id": 4,
+        "name": "Стоматология",
+        "img": "storage/specializations/Dentistry.svg"
+    },
+    {
+        "id": 5,
+        "name": "Дерматовенерология",
+        "img": "storage/specializations/Dermatovenerology.svg"
+    },
+    {
+        "id": 6,
+        "name": "Диетология",
+        "img": "storage/specializations/Dietetics.svg"
+    },
+    {
+        "id": 7,
+        "name": "Эндокринология",
+        "img": "storage/specializations/Endocrinology.svg"
+    },
+    {
+        "id": 8,
+        "name": "Эндоскопия",
+        "img": "storage/specializations/Endoscopy.svg"
+    },
+    {
+        "id": 9,
+        "name": "Гастроэнтерология",
+        "img": "storage/specializations/Gastroenterology.svg"
+    },
+    {
+        "id": 10,
+        "name": "Нефрология",
+        "img": "storage/specializations/Nephrology.svg"
+    },
+    {
+        "id": 11,
+        "name": "Неврология",
+        "img": "storage/specializations/Neurology.svg"
+    },
+    {
+        "id": 12,
+        "name": "Нейрохирургия",
+        "img": "storage/specializations/Neurosurgery.svg"
+    },
+    {
+        "id": 13,
+        "name": "Акушерство и гинекология",
+        "img": "storage/specializations/Obstetrics_and_gynecology.svg"
+    },
+    {
+        "id": 14,
+        "name": "Онкология",
+        "img": "storage/specializations/Oncology.svg"
+    },
+    {
+        "id": 15,
+        "name": "Офтальмология",
+        "img": "storage/specializations/Ophthalmology.svg"
+    },
+    {
+        "id": 16,
+        "name": "Нефрология",
+        "img": "storage/specializations/Nephrology.svg"
+    },
+    {
+        "id": 17,
+        "name": "Отоларингология",
+        "img": "storage/specializations/Otolaryngology.svg"
+    },
+    {
+        "id": 18,
+        "name": "Педиатрия",
+        "img": "storage/specializations/Pediatrics.svg"
+    },
+    {
+        "id": 19,
+        "name": "Психиатрия-наркология",
+        "img": "storage/specializations/Psychiatry-narcology.svg"
+    },
+    {
+        "id": 20,
+        "name": "Психотерапия",
+        "img": "storage/specializations/Psychotherapy.svg"
+    },
+    {
+        "id": 21,
+        "name": "Ревматология",
+        "img": "storage/specializations/Rheumatology.svg"
+    },
+    {
+        "id": 22,
+        "name": "Хирургия",
+        "img": "storage/specializations/Surgery.svg"
+    },
+    {
+        "id": 23,
+        "name": "Терапия",
+        "img": "storage/specializations/Therapy.svg"
+    },
+    {
+        "id": 24,
+        "name": "Травматология и ортопедия",
+        "img": "storage/specializations/Traumatology_and_orthopedics.svg"
+    },
+    {
+        "id": 25,
+        "name": "УЗИ",
+        "img": "storage/specializations/Ultrasound.svg"
+    },
+    {
+        "id": 26,
+        "name": "Урология",
+        "img": "storage/specializations/Urology.svg"
+    }
+]
