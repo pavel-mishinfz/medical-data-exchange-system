@@ -47,9 +47,13 @@ class UserManager(UUIDIDMixin, BaseUserManager[models.User, uuid.UUID]):
     async def on_after_request_verify(
             self, user: models.User, token: str, request: Optional[Request] = None
     ):
-        message = make_verify_email_template(token, user.email)
-        await send_email(message, "Подтверждение регистрации", user.email)
-        print(f"Verification requested for user {user.id}. Verification token: {token}")
+        body: dict = await request.json()
+        password = body.get('password')
+        subject = 'Подтверждение регистрации'
+        if not password:
+            subject = 'Подтверждение аккаунта'
+        message = make_verify_email_template(token, user.email, password)
+        await send_email(message, subject, user.email)
 
 
 async def get_user_manager(
@@ -62,12 +66,19 @@ async def get_user_manager(
     yield user_manager
 
 
-def make_verify_email_template(token: str, email: str):
+def make_verify_email_template(token: str, email: str, password: str | None):
+    register_text = f"""
+        <h1>Регистрация прошла успешно!</h1>
+        <h3>Данные для входа в систему:</h3>
+        <p>Логин: {email}</p>
+        <p>Пароль: {password}</p>
+        """
+
     return f"""
     <html>
         <body>
             <div style="background-color:#fff;padding:20px">
-            <h1>Регистрация прошла успешно!</h1>
+            {register_text if password else ''}
             <p style="display:block;font-size:18px">
                 Для подтверждения аккаунта нажмите:
             </p>
