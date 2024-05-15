@@ -14,7 +14,7 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     birthday: datetime.date = Field(title='Возраст')
     specialization_id: Optional[int] = Field(None, title='Специализация врача')
     img: Optional[str] = Field(None, title='Фотография пользователя')
-    experience: Optional[int] = None
+    date_employment: Optional[datetime.date] = None
     desc: Optional[str] = None
 
 
@@ -26,7 +26,7 @@ class UserCreate(schemas.BaseUserCreate):
     birthday: datetime.date
     specialization_id: Optional[int] = None
     img: Optional[str] = None
-    experience: Optional[int] = None
+    date_employment: Optional[datetime.date] = None
     desc: Optional[str] = None
 
 
@@ -38,5 +38,5 @@ class UserUpdate(schemas.BaseUserUpdate):
     birthday: Optional[datetime.date] = None
     specialization_id: Optional[int] = None
     img: Optional[str] = None
-    experience: Optional[int] = None
+    date_employment: Optional[datetime.date] = None
     desc: Optional[str] = None

@@ -19,7 +19,7 @@ class User(SQLAlchemyBaseUserTableUUID, database.Base):
     birthday = Column(Date, nullable=False)
     specialization_id = mapped_column(ForeignKey("specialization.id"))
     desc = Column(String)
-    experience = Column(Integer)
+    date_employment = Column(Date)
     img = Column(String)
     group_id = mapped_column(ForeignKey("group.id"), nullable=False)
     group = relationship("Group", uselist=False)
