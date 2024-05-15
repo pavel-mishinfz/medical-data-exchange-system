@@ -9,11 +9,6 @@ class Config(BaseSettings):
         env='POSTGRES_DSN',
         alias='POSTGRES_DSN'
     )
-    path_to_storage: str = Field(
-        default='/src/storage/',
-        env='PATH_TO_STORAGE',
-        alias='PATH_TO_STORAGE'
-    )
 
     model_config = SettingsConfigDict(env_file=".env")
 

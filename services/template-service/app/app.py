@@ -1,8 +1,4 @@
-import os
-import pathlib
-
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy.orm import Session
@@ -53,9 +49,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.resolve()
-app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
 
 
 def get_db():
