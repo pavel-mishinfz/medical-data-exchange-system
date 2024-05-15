@@ -41,6 +41,7 @@ class PageDiary(PageDiaryBase):
     Модель используемая при запросе информации о странице дневника
     """
     id: uuid.UUID = Field(title='Идентификатор страницы')
+    id_user: uuid.UUID
     create_date: datetime = Field(title='Дата создания страницы дневника')
 
     @field_validator('temperature', 'sugar_level')
