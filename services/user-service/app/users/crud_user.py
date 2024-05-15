@@ -33,15 +33,15 @@ async def get_doctors_of_specialization(
     return result.scalars().all()
 
 
-# async def get_users_list(
-#         session: AsyncSession
-#     ) -> list[models.User]:
-#     """
-#     Возвращает список пользователей
-#     """
+async def get_users_list(
+        session: AsyncSession
+    ) -> list[models.User]:
+    """
+    Возвращает список пользователей
+    """
 
-#     result = await session.execute(select(models.User))
-#     return result.scalars().all()
+    result = await session.execute(select(models.User))
+    return result.scalars().all()
 
 
 async def update_img(

@@ -41,13 +41,13 @@ async def get_groups(
 
 async def get_group(
         session: AsyncSession, group_id: int
-    ) -> models.Group:
+    ) -> models.Group | None:
     """
     Возвращает информацию о группе пользователей
     """
 
     result = await session.execute(select(models.Group) \
-                                   .filter(models.Group.id == group_id) \
+                                   .where(models.Group.id == group_id) \
                                    .limit(1)
                                    )
     return result.scalars().one_or_none()

@@ -45,8 +45,7 @@ description = """
  
 Сервис предоставляет CRUD для специализаций врачей.
  
-Также данный сервис позволяет _отправить сообщение_ на электронную почту пользователю 
-для подтверждения аккаунта или сброса пароля.
+Также данный сервис позволяет _отправить код подтверждения_ на электронную почту пользователю при смене почты.
 """
 
 tags_metadata = [
@@ -208,7 +207,7 @@ async def update_user_image_by_id(
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     if file.content_type not in ['image/png', 'image/jpeg']:
         raise HTTPException(status_code=400, detail="Недопустимый тип файла")
-    file_path = user.image
+    file_path = user.img
     if file_path is not None:
         os.remove(file_path)
     file_path = make_path_to_file(app_config.path_to_storage, file.filename)
@@ -230,10 +229,10 @@ async def delete_user_image_by_id(
     user = await users.crud_user.get_user(id, session)
     if user is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
-    file_path = user.image
+    file_path = user.img
     if file_path is not None:
         os.remove(file_path)
-    return await users.crud_user.update_image(None, user.id, session)
+    return await users.crud_user.update_img(None, user.id, session)
 
 
 @app.get(
@@ -262,14 +261,14 @@ async def get_user_overload(
     return await users.crud_user.get_user(id, session)
 
 
-# @app.get(
-#     "/users", response_model=list[schemas.user.UserRead],
-#     summary="Возвращает список всех пользователей", tags=["users"]
-#     )
-# async def get_list_users(
-#     session: AsyncSession = Depends(database.get_async_session)
-#     ):
-#     return users.crud_user.get_users_list(session)
+@app.get(
+    "/users", response_model=list[schemas.user.UserRead],
+    summary="Возвращает список всех пользователей", tags=["users"]
+    )
+async def get_list_users(
+    session: AsyncSession = Depends(database.get_async_session)
+    ):
+    return await users.crud_user.get_users_list(session)
 
 
 @app.post(
@@ -446,7 +445,7 @@ def make_template_change_email(code: str):
     """
 
 async def delete_old_confirmation_codes():
-    async for session in users.models.get_async_session():
+    async for session in database.get_async_session():
         while True:
             expired_time = datetime.now() - timedelta(seconds=180)
             codes_to_delete = await users.crud_confirm_code.get_old_confirm_codes(session, expired_time)
