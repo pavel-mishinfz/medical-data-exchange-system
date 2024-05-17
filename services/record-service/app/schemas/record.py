@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -9,7 +9,7 @@ class RecordBase(BaseModel):
     """
     Базовая модель записи на прием
     """
-    date: Optional[datetime] = None
+    date: Optional[datetime.date] = None
     time: Optional[str] = None
 
     class ConfigDict:
@@ -22,7 +22,7 @@ class RecordIn(RecordBase):
     """
     id_user: uuid.UUID = Field(title='Идентификатор пациента')
     id_doctor: uuid.UUID = Field(title='Идентификатор врача')
-    date: datetime = Field(title='Дата записи')
+    date: datetime.date = Field(title='Дата записи')
     time: str = Field(title='Время записи')
 
 
