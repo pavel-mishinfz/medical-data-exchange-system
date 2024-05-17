@@ -3,7 +3,7 @@ import uuid
 from typing import Optional
 
 from fastapi_users import schemas
-from pydantic import Field
+from pydantic import Field, BaseModel
 
 
 class UserRead(schemas.BaseUser[uuid.UUID]):
@@ -40,3 +40,18 @@ class UserUpdate(schemas.BaseUserUpdate):
     img: Optional[str] = None
     date_employment: Optional[datetime.date] = None
     desc: Optional[str] = None
+
+
+class DoctorRead(BaseModel):
+
+    id: uuid.UUID
+    name: str
+    surname: str
+    patronymic: str
+    specialization_id: int
+    img: str
+    date_employment: datetime.date
+    desc: str
+
+    class ConfigDict:
+        from_attribute = True;
