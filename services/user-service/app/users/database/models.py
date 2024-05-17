@@ -31,6 +31,7 @@ class ConfirmCode(database.Base):
     user_id = mapped_column(ForeignKey("user.id"), primary_key=True, nullable=False, unique=True)
     code = Column(String(length=6), nullable=False)
     create_date = Column(DateTime(timezone=True), nullable=False)
+    activation_time = Column(DateTime(timezone=True))
 
 
 class Specialization(database.Base):
