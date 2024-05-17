@@ -236,29 +236,104 @@ async def delete_user_image_by_id(
 
 
 @app.get(
-    "/users/me",
-    response_model=schemas.user.UserRead,
-    summary="Возвращает текущего пользователя",
-    tags=["users"]
+    "/users/doctor/{doctor_id}",
+    response_model=schemas.user.DoctorRead,
+    summary='Возвращает информацию о враче для пользователя',
+    dependencies=[Depends(fastapi_users.current_user(active=True, verified=True))],
+    tags=['users']
     )
-async def get_user_me_overload(
-    user: database.models.User = Depends(fastapi_users.current_user(active=True, verified=True))
+async def get_doctor_for_patient(
+    doctor_id: uuid.UUID,
+    session: AsyncSession = Depends(database.get_async_session)
 ):
+    user = await users.crud_user.get_doctor(doctor_id, session)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
     return user
 
 
-@app.get(
-    "/users/{id}",
+@app.patch(
+    "/users/me",
     response_model=schemas.user.UserRead,
-    summary="Возвращает пользователя по id",
-    dependencies=[Depends(fastapi_users.authenticator.current_user(active=True, verified=True))],
-    tags=["users"]
+    summary='Обновляет основную информацию о текущем пользователе',
+    tags=['users']
     )
-async def get_user_overload(
-    id: uuid.UUID,
+async def update_current_user_overload(
+    user: schemas.user.UserUpdate,
+    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True, verified=True)),
     session: AsyncSession = Depends(database.get_async_session)
 ):
-    return await users.crud_user.get_user(id, session)
+    updated_user = await users.crud_user.update_user(current_user.id, user, session)
+    if updated_user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    return updated_user
+
+
+@app.patch(
+    "/users/{id}",
+    response_model=schemas.user.UserRead,
+    summary='Обновляет основную информацию о пользователе по id',
+    dependencies=[Depends(fastapi_users.current_user(active=True, verified=True, superuser=True))],
+    tags=['users']
+    )
+async def update_user_overload(
+    id: uuid.UUID,
+    user: schemas.user.UserUpdate,
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    updated_user = await users.crud_user.update_user(id, user, session)
+    if updated_user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    return updated_user
+
+
+@app.patch(
+    "/users/me/email",
+    response_model=schemas.user.UserRead,
+    summary='Обновляет почту текущего пользователя',
+    tags=['users']
+    )
+async def update_current_user_email(
+    email: str,
+    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True, verified=True)),
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    date = datetime.now(timezone.utc)
+    confirm_code = await users.crud_confirm_code.get_confirm_code(session, current_user.id)
+    if confirm_code is None:
+        raise HTTPException(status_code=403, detail="Изменение почты недоступно")
+    if not confirm_code.activation_time or (date - confirm_code.activation_time).seconds > 900: 
+        raise HTTPException(status_code=403, detail="Изменение почты недоступно")
+    updated_user = await users.crud_user.update_user_email(current_user.id, email, session)
+    if updated_user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    await users.crud_confirm_code.delete_confirm_code(session, current_user.id)
+    return updated_user
+
+
+@app.patch(
+    "/users/{user_id}/email",
+    response_model=schemas.user.UserRead,
+    summary='Обновляет почту пользователя по id',
+    tags=['users']
+    )
+async def update_user_email(
+    email: str,
+    user_id: uuid.UUID,
+    current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True, verified=True, superuser=True)),
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    date = datetime.now(timezone.utc)
+    confirm_code = await users.crud_confirm_code.get_confirm_code(session, current_user.id)
+    if confirm_code is None:
+        raise HTTPException(status_code=403, detail="Изменение почты недоступно")
+    if not confirm_code.activation_time or (date - confirm_code.activation_time).seconds > 900: 
+        raise HTTPException(status_code=403, detail="Изменение почты недоступно")
+    updated_user = await users.crud_user.update_user_email(user_id, email, session)
+    if updated_user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    await users.crud_confirm_code.delete_confirm_code(session, current_user.id)
+    return updated_user
 
 
 @app.get(
@@ -373,10 +448,13 @@ async def check_confirm_code(
 ):
     date = datetime.now(timezone.utc)
     correct_code = await users.crud_confirm_code.get_confirm_code(session, current_user.id)
+    if correct_code is None:
+        raise HTTPException(status_code=404, detail="Код не найден")
     if (date - correct_code.create_date).seconds > 180:
         raise HTTPException(status_code=404, detail="Код истек")
     if code != correct_code.code:
         raise HTTPException(status_code=404, detail="Неверный код")
+    await users.crud_confirm_code.activate_code(current_user.id, date, session)
 
 
 app.include_router(
@@ -447,8 +525,10 @@ def make_template_change_email(code: str):
 async def delete_old_confirmation_codes():
     async for session in database.get_async_session():
         while True:
-            expired_time = datetime.now() - timedelta(seconds=180)
-            codes_to_delete = await users.crud_confirm_code.get_old_confirm_codes(session, expired_time)
+            date = datetime.now()
+            expired_time = date - timedelta(seconds=180)
+            expired_activation_time = date - timedelta(seconds=900)
+            codes_to_delete = await users.crud_confirm_code.get_old_confirm_codes(session, expired_time, expired_activation_time)
             for code in codes_to_delete:
                 await users.crud_confirm_code.delete_confirm_code(session, code.user_id)
             await asyncio.sleep(60)
