@@ -23,27 +23,28 @@ async def get_user(
 
 async def update_user(
         user_id: uuid.UUID, user: user.UserUpdate, session: AsyncSession
-    ) -> models.User | None:
+) -> models.User | None:
     """
     Обновляет основную информацию о пользователе
     """
     excluded_fields = {
-        'email': user.email,
-        'password': user.password,
-        'group_id': user.group_id,
-        'is_active': user.is_active,
-        'is_verified': user.is_verified,
-        'is_superuser': user.is_superuser
+        'email',
+        'password',
+        'group_id',
+        'is_active',
+        'is_verified',
+        'is_superuser'
     }
-    user_in = user.model_dump(exclude=excluded_fields, exclude_unset=True)
-    result = await session.execute(update(models.User) \
-                                   .where(models.User.id == user_id) \
-                                   .values(user_in)
-                                   )
+    user_in = user.model_dump(exclude_unset=True, exclude=excluded_fields)
+    if not user_in:
+        return None
+    
+    result = await session.execute(update(models.User).filter(models.User.id == user_id).values(user_in))
     await session.commit()
     if result:
         return await get_user(user_id, session)
     return None
+
 
 
 async def update_user_email(
@@ -90,13 +91,16 @@ async def get_doctors_of_specialization(
 
 
 async def get_users_list(
-        session: AsyncSession
+        session: AsyncSession, group_id: int | None = None
     ) -> list[models.User]:
     """
     Возвращает список пользователей
     """
-
-    result = await session.execute(select(models.User).order_by(models.User.surname))
+    stmt = select(models.User)
+    if group_id is not None:
+        stmt = stmt.filter(models.User.group_id == group_id)
+    
+    result = await session.execute(stmt.order_by(models.User.surname))
     return result.scalars().all()
 
 
