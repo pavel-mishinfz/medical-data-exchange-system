@@ -1,6 +1,7 @@
 import locale
 import uuid
 import datetime
+import asyncio
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,8 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .schemas import (Record,
                       RecordIn,
                       RecordOptional,
-                      RecordForPatient,
-                      RecordForDoctor,
                       ScheduleIn,
                       Schedule,
                       ScheduleOptional)
@@ -54,7 +53,24 @@ locale.setlocale(locale.LC_ALL, '')
     tags=["records"]
 )
 async def add_record(record_in: RecordIn, db: AsyncSession = Depends(get_async_session)):
+    record_exists = await crud.check_record(db, record_in)
+    if record_exists:
+        raise HTTPException(status_code=500, detail="Запись уже существует")
+    available_dates_and_times = await get_available_dates_and_times(record_in.id_doctor, db)
+    times_list = available_dates_and_times.get(record_in.date)
+    if times_list is None or record_in.time not in times_list:
+        raise HTTPException(status_code=403, detail="Запись недоступна")
     return await crud.create_record(db, record_in)
+
+
+@app.get(
+    '/records',
+    response_model=list[Record],
+    summary='Возвращает все записи',
+    tags=["records"]
+)
+async def get_records_list(db: AsyncSession = Depends(get_async_session)):
+    return await crud.get_records_all(db)
 
 
 @app.get(
@@ -72,22 +88,22 @@ async def get_record(record_id: int, db: AsyncSession = Depends(get_async_sessio
 
 @app.get(
     '/records/user/{user_id}',
-    response_model=list[RecordForPatient],
-    summary='Возвращает список записи на приемы для пациента',
+    response_model=list[Record],
+    summary='Возвращает список записей для пациента',
     tags=["records"]
 )
-async def get_record(user_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
-    return await crud.get_record_list(db=db, user_id=user_id)
+async def get_records_list_for_patient(user_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
+    return await crud.get_records_list(db=db, user_id=user_id)
 
 
 @app.get(
     '/records/doctor/{doctor_id}',
-    response_model=list[RecordForDoctor],
-    summary='Возвращает список записей пользователей для врача',
+    response_model=list[Record],
+    summary='Возвращает список записей для врача',
     tags=["records"]
 )
-async def get_record(doctor_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
-    return await crud.get_record_list(db=db, doctor_id=doctor_id)
+async def get_records_list_for_patient(doctor_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
+    return await crud.get_records_list(db=db, doctor_id=doctor_id)
 
 
 @app.patch(
@@ -187,6 +203,8 @@ async def on_startup():
         cfg.postgres_dsn_async.unicode_string()
     )
 
+    asyncio.create_task(delete_old_records())
+
 
 async def get_available_dates_and_times(
         doctor_id: uuid.UUID,
@@ -210,7 +228,7 @@ async def convert_string_to_time(string):
 
 async def get_records(db, id_doctor):
     records = {}
-    list_model_record = await crud.get_record_list(db=db, doctor_id=id_doctor)
+    list_model_record = await crud.get_records_list(db=db, doctor_id=id_doctor)
     for model_record in list_model_record:
         model_record = model_record.__dict__
         date = model_record['date']
@@ -234,7 +252,6 @@ async def make_available_dates(schedule):
     available_dates = {}
     while current_date <= deadline_date:
         weekday = current_date.weekday().__str__()
-        # if schedule.get(weekday):
         date = current_date
         available_dates[date] = weekday
         current_date += datetime.timedelta(days=1)
@@ -270,3 +287,13 @@ async def make_available_dates_and_times(records, available_dates, schedule, tim
                 time, time_per_patient, list_unavailable_times
             )
     return available_dates_and_times
+
+
+async def delete_old_records():
+    async for session in get_async_session():
+        while True:
+            records_to_delete = await crud.get_old_records(session)
+            for record in records_to_delete:
+                await crud.delete_record(session, record.id)
+            await asyncio.sleep(24 * 60 * 60)
+            

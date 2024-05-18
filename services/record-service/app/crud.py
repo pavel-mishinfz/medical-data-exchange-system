@@ -1,7 +1,7 @@
 import datetime
 import uuid
 
-from sqlalchemy import delete, select, update, or_
+from sqlalchemy import delete, select, update, or_, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import models
 from .schemas import RecordIn, RecordOptional, ScheduleIn, ScheduleOptional
@@ -23,6 +23,16 @@ async def create_record(
     return db_record
 
 
+async def get_records_all(
+        db: AsyncSession
+    ) -> list[models.Record]:
+    """
+    Возвращает все записи
+    """
+    result = await db.execute(select(models.Record).order_by(models.Record.date.asc()))
+    return result.scalars().all()
+
+
 async def get_record(
         db: AsyncSession, record_id: int
     ) -> models.Record | None:
@@ -36,7 +46,7 @@ async def get_record(
     return result.scalars().one_or_none()
 
 
-async def get_record_list(
+async def get_records_list(
         db: AsyncSession,
         user_id: uuid.UUID = None,
         doctor_id: uuid.UUID = None
@@ -50,7 +60,20 @@ async def get_record_list(
                                       models.Record.id_user == user_id,
                                       models.Record.id_doctor == doctor_id
                                       ))
-                              .filter(models.Record.date >= datetime.datetime.today().date())  
+                              .filter(models.Record.date >= datetime.datetime.today().date()) \
+                              .order_by(models.Record.date.asc())  
+                              )
+    return result.scalars().all()
+
+
+async def get_old_records(
+        db: AsyncSession
+    ) -> list[models.Record] | None:
+    """
+    Возвращает список прошедших записей
+    """
+    result = await db.execute(select(models.Record) \
+                              .filter(models.Record.date < datetime.datetime.today().date())  
                               )
     return result.scalars().all()
 
@@ -86,6 +109,26 @@ async def delete_record(
     await db.commit()
 
     return deleted_record
+
+
+async def check_record(
+        db: AsyncSession, record_in: RecordIn
+    ) -> models.Record | None:
+    """
+    Возвращает запись пациента на прием
+    """
+    result = await db.execute(select(models.Record) \
+                              .filter(
+                                  and_(
+                                      models.Record.id_user == record_in.id_user,
+                                      models.Record.id_doctor == record_in.id_doctor,
+                                      models.Record.date == record_in.date,
+                                      models.Record.time == record_in.time
+                                  )
+                              ) \
+                              .limit(1)
+                              )
+    return result.scalars().one_or_none()
 
 
 async def create_schedule(
