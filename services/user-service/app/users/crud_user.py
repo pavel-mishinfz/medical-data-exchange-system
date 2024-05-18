@@ -96,7 +96,7 @@ async def get_users_list(
     Возвращает список пользователей
     """
 
-    result = await session.execute(select(models.User))
+    result = await session.execute(select(models.User).order_by(models.User.surname))
     return result.scalars().all()
 
 

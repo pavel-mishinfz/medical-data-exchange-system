@@ -236,7 +236,7 @@ async def delete_user_image_by_id(
 
 
 @app.get(
-    "/users/doctor/{doctor_id}",
+    "/users/doctor/{doctor_id}/summary",
     response_model=schemas.user.DoctorRead,
     summary='Возвращает информацию о враче для пользователя',
     dependencies=[Depends(fastapi_users.current_user(active=True, verified=True))],
@@ -247,6 +247,23 @@ async def get_doctor_for_patient(
     session: AsyncSession = Depends(database.get_async_session)
 ):
     user = await users.crud_user.get_doctor(doctor_id, session)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    return user
+
+
+@app.get(
+    "/users/user/{user_id}/summary",
+    response_model=schemas.user.UserReadSummary,
+    summary='Возвращает основную информацию о пользователе для врача',
+    dependencies=[Depends(fastapi_users.current_user(active=True, verified=True))],
+    tags=['users']
+    )
+async def get_patient_for_doctor(
+    user_id: uuid.UUID,
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    user = await users.crud_user.get_user(user_id, session)
     if user is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return user
@@ -338,7 +355,9 @@ async def update_user_email(
 
 @app.get(
     "/users", response_model=list[schemas.user.UserRead],
-    summary="Возвращает список всех пользователей", tags=["users"]
+    summary="Возвращает список всех пользователей",
+    dependencies=[Depends(fastapi_users.current_user(active=True, verified=True, superuser=True))],
+    tags=["users"]
     )
 async def get_list_users(
     session: AsyncSession = Depends(database.get_async_session)

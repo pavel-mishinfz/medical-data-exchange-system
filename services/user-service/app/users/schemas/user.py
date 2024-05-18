@@ -42,6 +42,16 @@ class UserUpdate(schemas.BaseUserUpdate):
     desc: Optional[str] = None
 
 
+class UserReadSummary(BaseModel):
+    name: str
+    surname: str
+    patronymic: str
+    birthday: datetime.date
+
+    class ConfigDict:
+        from_attribute = True
+
+
 class DoctorRead(BaseModel):
 
     id: uuid.UUID
@@ -54,4 +64,4 @@ class DoctorRead(BaseModel):
     desc: str
 
     class ConfigDict:
-        from_attribute = True;
+        from_attribute = True
