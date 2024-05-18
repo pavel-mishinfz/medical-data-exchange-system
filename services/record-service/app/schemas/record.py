@@ -11,6 +11,7 @@ class RecordBase(BaseModel):
     """
     date: Optional[datetime.date] = None
     time: Optional[str] = None
+    is_online: bool = Field(False, title='Формат приема')
 
     class ConfigDict:
         from_attribute = True
@@ -40,17 +41,3 @@ class RecordOptional(RecordBase):
     Модель для обновления информации о записи
     """
     id_doctor: Optional[uuid.UUID] = None
-
-
-class RecordForPatient(RecordBase):
-    """
-    Модель используемая при запросе информации о всех записях для пациента
-    """
-    id_doctor: uuid.UUID
-
-
-class RecordForDoctor(RecordBase):
-    """
-    Модель используемая при запросе информации о всех записях для врача
-    """
-    id_user: uuid.UUID

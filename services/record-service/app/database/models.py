@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, UUID, Date, JSON
+from sqlalchemy import Column, Integer, String, UUID, Date, JSON, Boolean
 
 from .database import Base
 
@@ -20,4 +20,5 @@ class Record(Base):
     id_doctor = Column(UUID(as_uuid=True), nullable=False)
     date = Column(Date, nullable=False)
     time = Column(String(length=30), nullable=False)
+    is_online = Column(Boolean, nullable=False, default=False)
 
