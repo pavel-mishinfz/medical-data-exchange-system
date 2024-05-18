@@ -5,7 +5,7 @@ import uuid
 import asyncio
 from datetime import datetime, timezone, timedelta
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, APIRouter
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -75,6 +75,15 @@ users.inject_secrets(
     verification_token_secret=app_config.verification_token_secret.get_secret_value(),
     reset_password_token_secret=app_config.reset_password_token_secret.get_secret_value()
 )
+
+user_router = fastapi_users.get_users_router(schemas.user.UserRead, schemas.user.UserUpdate)
+new_user_router = APIRouter()
+
+for route in user_router.routes:
+    if route.methods != {"PATCH"}:
+        new_user_router.routes.append(route)
+
+app.include_router(new_user_router, prefix="/users", tags=["users"])
 users.include_routers(app)
 
 
@@ -365,6 +374,18 @@ async def get_list_users(
     return await users.crud_user.get_users_list(session)
 
 
+@app.get(
+    "/users/patients", response_model=list[schemas.user.UserReadSummary],
+    summary="Возвращает список всех пациентов",
+    dependencies=[Depends(fastapi_users.current_user(active=True, verified=True))],
+    tags=["users"]
+    )
+async def get_list_patients(
+    session: AsyncSession = Depends(database.get_async_session)
+    ):
+    return await users.crud_user.get_users_list(session, group_id=3)
+
+
 @app.post(
     "/specializations",
     response_model=schemas.specialization.Specialization,
@@ -474,13 +495,6 @@ async def check_confirm_code(
     if code != correct_code.code:
         raise HTTPException(status_code=404, detail="Неверный код")
     await users.crud_confirm_code.activate_code(current_user.id, date, session)
-
-
-app.include_router(
-    fastapi_users.get_users_router(schemas.user.UserRead, schemas.user.UserUpdate),
-    prefix="/users",
-    tags=["users"],
-)
 
 
 @app.on_event("startup")
