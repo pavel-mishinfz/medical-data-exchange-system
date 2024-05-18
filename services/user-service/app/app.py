@@ -289,7 +289,7 @@ async def update_current_user_overload(
     current_user: schemas.user.UserRead = Depends(fastapi_users.current_user(active=True, verified=True)),
     session: AsyncSession = Depends(database.get_async_session)
 ):
-    updated_user = await users.crud_user.update_user(current_user.id, user, session)
+    updated_user = await users.crud_user.update_user(True, current_user.id, user, session)
     if updated_user is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return updated_user
@@ -307,7 +307,7 @@ async def update_user_overload(
     user: schemas.user.UserUpdate,
     session: AsyncSession = Depends(database.get_async_session)
 ):
-    updated_user = await users.crud_user.update_user(id, user, session)
+    updated_user = await users.crud_user.update_user(False, id, user, session)
     if updated_user is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return updated_user

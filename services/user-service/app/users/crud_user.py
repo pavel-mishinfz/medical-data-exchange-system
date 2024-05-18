@@ -22,7 +22,7 @@ async def get_user(
 
 
 async def update_user(
-        user_id: uuid.UUID, user: user.UserUpdate, session: AsyncSession
+        is_current_user: bool, user_id: uuid.UUID, user: user.UserUpdate, session: AsyncSession
 ) -> models.User | None:
     """
     Обновляет основную информацию о пользователе
@@ -35,6 +35,9 @@ async def update_user(
         'is_verified',
         'is_superuser'
     }
+    if is_current_user:
+        excluded_fields.add('specialization_id')
+
     user_in = user.model_dump(exclude_unset=True, exclude=excluded_fields)
     if not user_in:
         return None
