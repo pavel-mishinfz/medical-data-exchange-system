@@ -43,6 +43,7 @@ class UserUpdate(schemas.BaseUserUpdate):
 
 
 class UserReadSummary(BaseModel):
+    id: uuid.UUID
     name: str
     surname: str
     patronymic: str
