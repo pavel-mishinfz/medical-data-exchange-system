@@ -37,7 +37,7 @@ class Card(Base):
     snils = Column(CHAR(length=14), nullable=False, unique=True)
     insurance_company = Column(String, nullable=False)
     benefit_category_code = Column(String)
-    id_passport = mapped_column(ForeignKey('passport.id'), nullable=False)
+    id_passport = mapped_column(ForeignKey('passport.id'), nullable=False, unique=True)
     id_family_status = mapped_column(ForeignKey('family_status.id'), nullable=False)
     id_education = mapped_column(ForeignKey('education.id'), nullable=False)
     id_busyness = mapped_column(ForeignKey('busyness.id'), nullable=False)
@@ -49,8 +49,8 @@ class Card(Base):
     allergy = Column(String)
     create_date = Column(Date, nullable=False)
     pages = relationship("Page", back_populates='card', cascade="all, delete-orphan")
-    address = relationship("Address", uselist=False, cascade="all, delete")
-    passport = relationship("Passport", uselist=False, cascade="all, delete")
+    address = relationship("Address", cascade="all, delete")
+    passport = relationship("Passport",  uselist=False, back_populates="card", cascade="all, delete")
     family_status = relationship("FamilyStatus", uselist=False)
     education = relationship("Education", uselist=False)
     busyness = relationship("Busyness", uselist=False)
@@ -86,6 +86,7 @@ class Passport(Base):
     id = Column(Integer, primary_key=True, index=True)
     series = Column(CHAR(length=4), nullable=False)
     number = Column(CHAR(length=6), nullable=False)
+    card = relationship("Card", uselist=False, back_populates="passport")
 
 
 class FamilyStatus(Base):
