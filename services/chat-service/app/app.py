@@ -1,16 +1,16 @@
+import base64
 import json
 import os
 import pathlib
 import uuid
 import requests
-import requests.auth
-from urllib import parse
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Request, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from .schemas import Chat, ChatIn, Message, MessageIn, MessageUpdate, MessageDocument
+from . import schemas
 from . import crud
 from . import config
 from . import database
@@ -44,6 +44,9 @@ ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.resolve()
 app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
 
 room_managers = {}
+
+auth_token_url = 'https://zoom.us/oauth/token'
+api_base_url = "https://api.zoom.us/v2"
 
 
 class ConnectionManager:
@@ -211,30 +214,14 @@ async def delete_file(
     raise HTTPException(status_code=404, detail="Документ не найден")
 
 
-@app.get(
-    '/consultations/auth',
-    response_model=str,
-    summary='Возращает ссылку для авторизации в приложении zoom',
-    tags=['consultations']
+@app.post(
+        '/create_meeting', 
+        response_model=schemas.Metting,
+        tags=['consultations']
 )
-def make_authorization_url():
-    params = {"client_id": app_config.CLIENT_ID,
-              "response_type": "code",
-              "redirect_uri": app_config.REDIRECT_URI.unicode_string()}
-    url = "https://zoom.us/oauth/authorize?" + parse.urlencode(params)
-    return url
-
-
-@app.get(
-    '/consultations/callback',
-    response_model=str,
-    summary='Возвращает ссылку для подключения',
-    tags=['consultations']
-)
-def make_meeting_url(request: Request):
-    code = request.query_params['code']
-    access_token = get_token(code)
-    return get_username(access_token)['personal_meeting_url']
+async def create_meeting_route(metting: schemas.MettingIn):
+    meeting_info = create_meeting(**metting.model_dump())
+    return meeting_info
 
 
 @app.on_event("startup")
@@ -245,26 +232,53 @@ async def on_startup():
         )
     
 
-def get_token(code):
-    client_auth = requests.auth.HTTPBasicAuth(
-        app_config.CLIENT_ID, app_config.CLIENT_SECRET.get_secret_value()
-    )
-    post_data = {"grant_type": "authorization_code",
-                 "code": code,
-                 "redirect_uri": app_config.REDIRECT_URI.unicode_string()}
+def create_meeting(topic, duration, start_date, start_time):
+    access_token = get_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "topic": topic,
+        "duration": duration,
+        'start_time': f'{start_date}T{start_time}:00',
+        "type": 2,
+        "timezone": 'Europe/Moscow',
+    }
+    resp = requests.post(f"{api_base_url}/users/me/meetings", 
+                        headers=headers, 
+                        json=payload)
+    
+    if resp.status_code!=201:
+        raise HTTPException(status_code=500, detail="Не удается создать ссылку на собрание")
+    response_data = resp.json()
+    return response_data
 
-    response = requests.post("https://zoom.us/oauth/token",
-                             auth=client_auth,
-                             data=post_data)
-    token_json = response.json()
-    return token_json["access_token"]
+def get_token():
+    auth_header = generate_basic_auth_header(app_config.CLIENT_ID, app_config.CLIENT_SECRET.get_secret_value())
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": f"Basic {auth_header}"
+    }
+    data = {
+        "grant_type": "account_credentials",
+        "account_id": app_config.ACCOUNT_ID,
+    }
+    response = requests.post(auth_token_url, 
+                            headers=headers, 
+                            data=data)
+    
+    if response.status_code!=200:
+        raise HTTPException(status_code=500, detail="Не удается получить токен доступа")
+    response_data = response.json()
+    access_token = response_data["access_token"]
+    return access_token
 
 
-def get_username(access_token):
-    headers = {"Authorization": "Bearer " + access_token}
-    response = requests.get("https://api.zoom.us/v2/users/me", headers=headers)
-    data = response.json()
-    return data
+def generate_basic_auth_header(client_id, client_secret):
+    auth_str = f"{client_id}:{client_secret}"
+    base64_encoded_str = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
+    return base64_encoded_str
 
 
 def create_path_to_file(path_to_storage: str, file_name: str):
