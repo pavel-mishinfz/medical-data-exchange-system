@@ -153,7 +153,7 @@ async def delete_group(
 
 
 @app.get(
-    "/users/specialization/{specialization_id}", response_model=list[schemas.user.UserRead],
+    "/users/specialization/{specialization_id}", response_model=list[schemas.user.DoctorRead],
     summary="Возвращает список врачей конкретной специализации", tags=["users"]
     )
 async def get_doctors_of_specialization(
