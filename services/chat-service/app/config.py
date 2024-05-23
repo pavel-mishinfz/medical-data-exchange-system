@@ -16,16 +16,16 @@ class Config(BaseSettings):
         alias='CLIENT_ID'
     )
 
+    ACCOUNT_ID: str = Field(
+        default='account_id',
+        env='ACCOUNT_ID',
+        alias='ACCOUNT_ID'
+    )
+
     CLIENT_SECRET: SecretStr = Field(
         default='client_secret',
         env='CLIENT_SECRET',
         alias='CLIENT_SECRET'
-    )
-
-    REDIRECT_URI: HttpUrl = Field(
-        default='http://127.0.0.1:8000/callback',
-        env='REDIRECT_URI',
-        alias='REDIRECT_URI'
     )
 
     path_to_storage: str = Field(
