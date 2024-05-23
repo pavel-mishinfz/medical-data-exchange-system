@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import Column, Integer, String, UUID, Date, JSON, Boolean
 
 from .database import Base
@@ -15,7 +16,7 @@ class Schedule(Base):
 class Record(Base):
     __tablename__ = "record"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     id_user = Column(UUID(as_uuid=True), nullable=False)
     id_doctor = Column(UUID(as_uuid=True), nullable=False)
     date = Column(Date, nullable=False)
