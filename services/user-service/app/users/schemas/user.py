@@ -9,7 +9,7 @@ from pydantic import Field, BaseModel
 class UserRead(schemas.BaseUser[uuid.UUID]):
     name: str = Field(title='Имя пользователя')
     surname: str = Field(title='Фамилия пользователя')
-    patronymic: str = Field(title='Отчество пользователя')
+    patronymic: Optional[str] = Field(None, title='Отчество пользователя')
     group_id: int = Field(title='Индентификатор группы')
     birthday: datetime.date = Field(title='Возраст')
     specialization_id: Optional[int] = Field(None, title='Специализация врача')
@@ -46,7 +46,7 @@ class UserReadSummary(BaseModel):
     id: uuid.UUID
     name: str
     surname: str
-    patronymic: str
+    patronymic: Optional[str] = None
     birthday: datetime.date
 
     class ConfigDict:
@@ -58,9 +58,9 @@ class DoctorRead(BaseModel):
     id: uuid.UUID
     name: str
     surname: str
-    patronymic: str
+    patronymic: Optional[str] = None
     specialization_id: int
-    img: str
+    img: Optional[str] = None
     date_employment: datetime.date
     desc: str
 
