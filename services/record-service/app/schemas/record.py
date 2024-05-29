@@ -31,7 +31,7 @@ class Record(RecordBase):
     """
     Модель используемая при запросе информации о записи
     """
-    id: int = Field(title='Идентификатор записи')
+    id: uuid.UUID = Field(title='Идентификатор записи')
     id_user: uuid.UUID
     id_doctor: uuid.UUID
 

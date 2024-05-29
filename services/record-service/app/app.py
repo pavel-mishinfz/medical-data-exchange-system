@@ -79,7 +79,7 @@ async def get_records_list(db: AsyncSession = Depends(get_async_session)):
     summary='Возвращает запись пациента',
     tags=["records"]
 )
-async def get_record(record_id: int, db: AsyncSession = Depends(get_async_session)):
+async def get_record(record_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
     record = await crud.get_record(db, record_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Запись не найдена")
@@ -113,7 +113,7 @@ async def get_records_list_for_patient(doctor_id: uuid.UUID, db: AsyncSession = 
     tags=["records"]
 )
 async def update_record(
-        record_id: int,
+        record_id: uuid.UUID,
         record_optional: RecordOptional,
         db: AsyncSession = Depends(get_async_session)
 ):
@@ -129,7 +129,7 @@ async def update_record(
     response_model=Record,
     tags=["records"]
 )
-async def delete_record(record_id: int, db: AsyncSession = Depends(get_async_session)):
+async def delete_record(record_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
     deleted_record = await crud.delete_record(db, record_id)
     if deleted_record is None:
         raise HTTPException(status_code=404, detail="Запись не найдена")
