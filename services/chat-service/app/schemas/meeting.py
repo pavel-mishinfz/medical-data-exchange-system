@@ -1,35 +1,40 @@
-from datetime import date
+import uuid
 from typing import Optional
+from datetime import date
 from pydantic import BaseModel, Field
 
 
-class MettingBase(BaseModel):
+class MeetingBase(BaseModel):
     """
     Базовая модель встречи
     """
-    topic: str = Field(title='Наименование встречи')
-    duration: int = Field(title='Продолжительность встречи')
+    topic: Optional[str] = Field('Онлайн-консультация', title='Наименование встречи')
 
     class ConfiDict:
         from_attribute = True
 
 
-class MettingIn(MettingBase):
+class MeetingIn(MeetingBase):
     """
     Модель для добавления встречи в базу данных
     """
+    record_id: uuid.UUID = Field(title='Идентификатор записи на прием')
     start_date: date = Field(title='Начало встречи (дата)')
     start_time: str = Field(title='Начало встречи (время)')
 
 
-class Metting(MettingBase):
+class MeetingDB(MeetingIn):
+    """
+    Модель для получения информации о встрече из базы данных
+    """
+    meeting_id: int
+
+
+class Meeting(MeetingBase):
     """
     Модель для получения информации о встрече
     """
-    id: int = Field(title='Идентификатор встречи')
     start_url: str = Field(title='Ссылка для начала встречи')
     join_url: str = Field(title='Ссылка для присоединения к встречи')
-    password: str = Field(title='Пароль')
     start_time: str = Field(title='Время встречи')
-    status: str = Field(title='Статус')
 

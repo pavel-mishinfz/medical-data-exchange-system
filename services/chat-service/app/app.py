@@ -5,6 +5,7 @@ import pathlib
 import uuid
 import requests
 
+
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Request, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 
@@ -47,6 +48,7 @@ room_managers = {}
 
 auth_token_url = 'https://zoom.us/oauth/token'
 api_base_url = "https://api.zoom.us/v2"
+
 
 
 class ConnectionManager:
@@ -215,13 +217,34 @@ async def delete_file(
 
 
 @app.post(
-        '/create_meeting', 
-        response_model=schemas.Metting,
-        tags=['consultations']
+        '/meetings',
+        summary="Добавляет идентификатор встречи в базу",
+        tags=['meetings']
 )
-async def create_meeting_route(metting: schemas.MettingIn):
-    meeting_info = create_meeting(**metting.model_dump())
-    return meeting_info
+async def create_meeting(
+    meeting: schemas.MeetingIn,
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    meeting_id = await get_meeting_id(**meeting.model_dump(exclude={'record_id'}))
+    return await crud.create_meeting(session, meeting_id, meeting)
+
+
+@app.get("/meetings/{meeting_id}", response_model=schemas.Meeting, tags=["meetings"])
+async def get_meeting(
+    meeting_id: int, 
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    meeting = await get_meeting_info(session, meeting_id)
+    if meeting is not None:
+        return meeting
+    raise HTTPException(status_code=404, detail="Встреча не найдена")
+
+
+@app.get("/meetings", response_model=list[schemas.MeetingDB], tags=["meetings"])
+async def get_meetings( 
+    session: AsyncSession = Depends(database.get_async_session)
+):
+    return await crud.get_meetings_list(session)
 
 
 @app.on_event("startup")
@@ -230,9 +253,9 @@ async def on_startup():
     await database.DB_INITIALIZER.init_database(
         app_config.postgres_dsn_async.unicode_string()
         )
-    
 
-def create_meeting(topic, duration, start_date, start_time):
+
+async def get_meeting_id(topic, start_date, start_time):
     access_token = get_token()
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -240,19 +263,40 @@ def create_meeting(topic, duration, start_date, start_time):
     }
     payload = {
         "topic": topic,
-        "duration": duration,
         'start_time': f'{start_date}T{start_time}:00',
         "type": 2,
         "timezone": 'Europe/Moscow',
+        "settings": {
+            "waiting_room": True,  
+        }
     }
     resp = requests.post(f"{api_base_url}/users/me/meetings", 
                         headers=headers, 
                         json=payload)
     
-    if resp.status_code!=201:
+    if resp.status_code != 201:
         raise HTTPException(status_code=500, detail="Не удается создать ссылку на собрание")
     response_data = resp.json()
+    return response_data["id"]
+
+
+async def get_meeting_info(session, meeting_id):
+    if await crud.get_meeting(session, meeting_id) is None:
+        return None
+
+    access_token = get_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    resp = requests.get(f"{api_base_url}/meetings/{meeting_id}", 
+                        headers=headers)
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=500, detail="Не удается получить информацию о встрече")
+    response_data = resp.json()
     return response_data
+
 
 def get_token():
     auth_header = generate_basic_auth_header(app_config.CLIENT_ID, app_config.CLIENT_SECRET.get_secret_value())

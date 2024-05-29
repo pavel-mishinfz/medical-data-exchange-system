@@ -1,6 +1,6 @@
 from typing import Tuple, Type
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource
-from pydantic import PostgresDsn, Field, SecretStr, HttpUrl
+from pydantic import PostgresDsn, Field, SecretStr
 
 
 class Config(BaseSettings):

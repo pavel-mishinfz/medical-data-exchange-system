@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Integer, String, UUID, Text, TIMESTAMP, ForeignKey, func
+from sqlalchemy import Column, Integer, String, UUID, Text, TIMESTAMP, ForeignKey, func, BigInteger, Date, CHAR
 from sqlalchemy.orm import mapped_column, relationship
 
 from .database import Base
@@ -32,3 +32,13 @@ class MessageDocument(Base):
     name = Column(String, nullable=False)
     path_to_file = Column(String, nullable=False)
     id_message = mapped_column(ForeignKey('message.id'), nullable=False)
+
+
+class Meeting(Base):
+    __tablename__ = "meeting"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    meeting_id = Column(BigInteger, nullable=False)
+    record_id = Column(UUID(as_uuid=True), nullable=False)
+    start_date = Column(Date, nullable=False)
+    start_time = Column(CHAR(length=5), nullable=False)

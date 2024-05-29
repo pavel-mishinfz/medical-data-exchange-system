@@ -1,6 +1,7 @@
 import uuid
+import datetime
 from .database import models
-from .schemas import ChatIn, MessageIn, MessageUpdate
+from .schemas import ChatIn, MessageIn, MessageUpdate, MeetingIn
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, update, delete
 
@@ -172,3 +173,47 @@ async def get_list_chat(
     result = await session.execute(stmt)
     return result.scalars().all()
 
+
+async def create_meeting(session: AsyncSession, meeting_id: int, meeting: MeetingIn) -> models.Meeting:
+    """
+    Создает новую встречу
+    """
+
+    db_meeting = models.Meeting(
+        meeting_id=meeting_id,
+        record_id=meeting.record_id,
+        start_date=meeting.start_date,
+        start_time=meeting.start_time
+    )
+
+    session.add(db_meeting)
+    await session.commit()
+    await session.refresh(db_meeting)
+    return db_meeting
+
+
+async def get_meeting(
+        session: AsyncSession, 
+        meeting_id: uuid.UUID) -> models.Meeting | None:
+    """
+    Возвращает информацию о встрече
+    """ 
+    
+    result = await session.execute(select(models.Meeting) \
+                                   .filter(models.Meeting.meeting_id == meeting_id) \
+                                   .limit(1)
+                                   )
+    return result.scalars().one_or_none()
+
+
+async def get_meetings_list(
+        session: AsyncSession
+    ) -> list[models.Meeting]:
+    """
+    Возвращает список встреч
+    """ 
+    
+    result = await session.execute(select(models.Meeting)
+                                   .filter(models.Meeting.start_date >= datetime.datetime.today().date())
+                                   )
+    return result.scalars().all()
