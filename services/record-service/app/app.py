@@ -146,24 +146,25 @@ async def add_schedule(schedule_in: ScheduleIn, db: AsyncSession = Depends(get_a
 
 
 @app.get(
-    '/schedules/{schedule_id}',
+    '/schedules/doctor/{doctor_id}',
     response_model=Schedule,
-    summary='Возвращает график работы по id графика',
+    summary='Возвращает график работы',
     tags=["schedules"]
 )
-async def get_schedule(schedule_id: int, db: AsyncSession = Depends(get_async_session)):
-    schedule = await crud.get_schedule(db, schedule_id=schedule_id, doctor_id=None)
+async def get_schedule(doctor_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
+    schedule = await crud.get_schedule(db, doctor_id=doctor_id)
     if schedule is None:
         raise HTTPException(status_code=404, detail="График не найден")
     return schedule
 
 
 @app.get(
-    '/schedules/doctor/{doctor_id}',
+    '/schedules/doctor/{doctor_id}/available_dates',
+    response_model=dict,
     summary='Возвращает доступные даты для записи на прием',
     tags=["schedules"]
 )
-async def get_schedule(doctor_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
+async def get_available_dates_of_doctor(doctor_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
     return await get_available_dates_and_times(doctor_id, db)
 
 
@@ -210,7 +211,7 @@ async def get_available_dates_and_times(
         doctor_id: uuid.UUID,
         db: AsyncSession = Depends(get_async_session)
     ):
-    model_schedule = await crud.get_schedule(db, schedule_id=None, doctor_id=doctor_id)
+    model_schedule = await crud.get_schedule(db, doctor_id=doctor_id)
     if model_schedule is None:
         raise HTTPException(status_code=404, detail="График не найден")
     schedule = dict(model_schedule.schedule)

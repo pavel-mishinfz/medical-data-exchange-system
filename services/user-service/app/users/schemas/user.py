@@ -5,6 +5,8 @@ from typing import Optional
 from fastapi_users import schemas
 from pydantic import Field, BaseModel
 
+from .specialization import Specialization
+
 
 class UserRead(schemas.BaseUser[uuid.UUID]):
     name: str = Field(title='Имя пользователя')
@@ -16,6 +18,7 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     img: Optional[str] = Field(None, title='Фотография пользователя')
     date_employment: Optional[datetime.date] = None
     desc: Optional[str] = None
+    is_deleted: bool
 
 
 class UserCreate(schemas.BaseUserCreate):
@@ -28,6 +31,7 @@ class UserCreate(schemas.BaseUserCreate):
     img: Optional[str] = None
     date_employment: Optional[datetime.date] = None
     desc: Optional[str] = None
+    is_deleted: Optional[bool] = False
 
 
 class UserUpdate(schemas.BaseUserUpdate):
@@ -40,6 +44,7 @@ class UserUpdate(schemas.BaseUserUpdate):
     img: Optional[str] = None
     date_employment: Optional[datetime.date] = None
     desc: Optional[str] = None
+    is_deleted: Optional[bool] = False
 
 
 class UserReadSummary(BaseModel):
@@ -48,21 +53,11 @@ class UserReadSummary(BaseModel):
     surname: str
     patronymic: Optional[str] = None
     birthday: datetime.date
-
-    class ConfigDict:
-        from_attribute = True
-
-
-class DoctorRead(BaseModel):
-
-    id: uuid.UUID
-    name: str
-    surname: str
-    patronymic: Optional[str] = None
-    specialization_id: int
+    specialization: Optional[Specialization] = None
     img: Optional[str] = None
-    date_employment: datetime.date
-    desc: str
+    date_employment: Optional[datetime.date] = None
+    desc: Optional[str] = None
+    is_superuser: bool
 
     class ConfigDict:
         from_attribute = True

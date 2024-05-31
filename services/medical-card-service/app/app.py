@@ -85,29 +85,37 @@ def get_db():
         db.close()
 
 
-@app.post('/cards/user/{user_id}', response_model=Card, summary='Добавляет медкарту в базу', tags=["cards"])
-def add_card(user_id: uuid.UUID, card_in: CardIn, db: Session = Depends(get_db)):
-    return crud.create_card(db, user_id, card_in)
+@app.post('/cards', response_model=Card, summary='Добавляет медкарту в базу', tags=["cards"])
+def add_card(card_in: CardIn, db: Session = Depends(get_db)):
+    return crud.create_card(db, card_in)
+
+
+@app.get('/cards',
+         response_model=list[Card],
+         summary='Возвращает список медкарт',
+         tags=["cards"])
+def get_cards_list(db: Session = Depends(get_db)):
+    return crud.get_cards_list(db)
 
 
 @app.get('/cards/{card_id}',
          response_model=Card,
-         summary='Возвращает медкарту по id карты',
+         summary='Возвращает медкарту',
          tags=["cards"])
-def get_card_by_id(card_id: int, db: Session = Depends(get_db)):
-    card = crud.get_card(db, card_id=card_id, user_id=None)
+def get_card(card_id: int, db: Session = Depends(get_db)):
+    card = crud.get_card(db, card_id=card_id)
     if card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найдена")
     return card
 
 
 @app.get(
-        '/cards/user/{user_id}', 
+        '/cards/me/{user_id}', 
         response_model=Card,
-        summary='Возвращает медкарту по id пациента',
+        summary='Возвращает медкарту для пациента',
         tags=["cards"])
 def get_card_by_user_id(user_id: uuid.UUID, db: Session = Depends(get_db)):
-    card = crud.get_card(db, card_id=None, user_id=user_id)
+    card = crud.get_card(db, user_id=user_id)
     if card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найдена")
     return card
@@ -127,13 +135,15 @@ def update_card(
 
 @app.delete(
     '/cards/{card_id}',
+    response_model=bool,
     summary='Удаляет медкарту из базы',
     tags=["cards"]
     )
 def delete_card(card_id: int, db: Session = Depends(get_db)):
-    deleted_card = crud.delete_card(db, card_id)
-    if deleted_card is None:
-        raise HTTPException(status_code=404, detail="Медкарта не найден")
+    card_has_deleted = crud.delete_card(db, card_id)
+    if card_has_deleted:
+        return card_has_deleted
+    raise HTTPException(status_code=404, detail="Медкарта не найден")
 
 
 @app.get(
@@ -197,16 +207,16 @@ def update_page(
 
 @app.delete(
     '/pages/{page_id}',
-    response_model=Page,
+    response_model=bool,
     summary='Удаляет страницу из базы',
     tags=["pages"]
     )
 def delete_page(page_id: uuid.UUID, db: Session = Depends(get_db)):
-    deleted_page, documents = crud.delete_page(db, page_id)
-    if deleted_page is None:
+    page_has_deleted, documents = crud.delete_page(db, page_id)
+    if page_has_deleted is False:
         raise HTTPException(status_code=404, detail="Страница не найден")
     remove_documents_of_page_from_storage(documents)
-    return deleted_page
+    return page_has_deleted
 
 
 @app.post(

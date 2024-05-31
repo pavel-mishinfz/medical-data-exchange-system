@@ -150,7 +150,7 @@ async def create_schedule(
 
 
 async def get_schedule(
-        db: AsyncSession, schedule_id: int | None, doctor_id: uuid.UUID | None
+        db: AsyncSession, schedule_id: int | None = None, doctor_id: uuid.UUID | None = None
     ) -> models.Schedule | None:
     """
     Возвращает график работы врача

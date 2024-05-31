@@ -13,7 +13,7 @@ from . import crud_disability
 
 
 def create_card(
-        db: Session, user_id: uuid.UUID, card_in: CardIn
+        db: Session, card_in: CardIn
     ) -> models.Card:
     """
     Создает новую медкарту в БД
@@ -27,7 +27,7 @@ def create_card(
         id_disability = disability.id
 
     db_card = models.Card(
-        id_user=user_id,
+        id_user=card_in.id_user,
         name=card_in.name,
         surname=card_in.surname,
         patronymic=card_in.patronymic,
@@ -60,18 +60,28 @@ def create_card(
 
 
 def get_card(
-        db: Session, card_id: int | None, user_id: uuid.UUID | None
+        db: Session, card_id: int | None = None, user_id: uuid.UUID | None = None
     ) -> models.Card | None:
     """
     Возвращает медкарту
     """
-    return db.query(models.Card) \
+    return db.query(models.Card)\
         .filter(
             or_(
                 models.Card.id == card_id, 
                 models.Card.id_user == user_id)
             ) \
+        .filter(models.Card.is_deleted == False) \
         .first()
+
+
+def get_cards_list(
+        db: Session
+    ) -> list[models.Card]:
+    """
+    Возвращает список медкарт
+    """
+    return db.query(models.Card).filter(models.Card.is_deleted == False).all()
 
 
 def update_card(
@@ -86,7 +96,7 @@ def update_card(
         'disability'
     }
 
-    before_update_card = get_card(db, card_id, None)
+    before_update_card = get_card(db, card_id)
     id_address = before_update_card.id_address
     id_passport = before_update_card.id_passport
     id_disability = before_update_card.id_disability
@@ -122,24 +132,25 @@ def update_card(
     db.commit()
 
     if result == 1:
-        return get_card(db, card_id, None)
+        return get_card(db, card_id)
     return None
 
 
 def delete_card(
         db: Session, card_id: int
-    ) -> models.Card | None:
+    ) -> bool:
     """
     Удаляет информацию о медкарте
     """
-    deleted_card = get_card(db, card_id, None)
+    deleted_card = get_card(db, card_id)
     if deleted_card is None:
-        return None
+        return False
 
-    db.delete(deleted_card)
+    deleted_card.is_deleted = True
+    db.add(deleted_card)
     db.commit()
 
-    return deleted_card
+    return deleted_card.is_deleted
 
 
 def create_page(
@@ -171,6 +182,7 @@ def get_page(
     """
     return db.query(models.Page) \
             .filter(models.Page.id == page_id) \
+            .filter(models.Page.is_deleted == False) \
             .first()
 
 
@@ -182,6 +194,7 @@ def get_pages(
     """
     return db.query(models.Page) \
         .filter(models.Page.id_card == card_id) \
+        .filter(models.Page.is_deleted == False) \
         .order_by(models.Page.create_date.asc()) \
         .all()
 
@@ -204,17 +217,18 @@ def update_page(
 
 def delete_page(
         db: Session, page_id: uuid.UUID
-    ) -> tuple[models.Page, models.Document] | tuple[None, None]:
+    ) -> tuple[bool, models.Document] | tuple[False, None]:
     """
     Удаляет информацию о странице
     """
     deleted_page = get_page(db, page_id)
     if deleted_page:
         documents = deleted_page.documents
-        db.delete(deleted_page)
+        deleted_page.is_deleted = True
+        db.add(deleted_page)
         db.commit()
-        return deleted_page, documents
-    return None, None
+        return deleted_page.is_deleted, documents
+    return False, None
 
 
 def get_list_family_status(

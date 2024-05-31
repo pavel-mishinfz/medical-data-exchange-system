@@ -44,6 +44,7 @@ class CardIn(CardBase):
     """
     Модель для добавления медкарты
     """
+    id_user: uuid.UUID
     name: str = Field(title='Имя')
     surname: str = Field(title='Фамилия')
     is_man: bool = Field(title='Пол')

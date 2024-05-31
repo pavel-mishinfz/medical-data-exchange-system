@@ -1,5 +1,5 @@
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import Column, ForeignKey, Integer, String, Date, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, Date, DateTime, Boolean
 from sqlalchemy.orm import mapped_column, relationship
 
 from . import database
@@ -18,11 +18,13 @@ class User(SQLAlchemyBaseUserTableUUID, database.Base):
     patronymic = Column(String(length=128))
     birthday = Column(Date, nullable=False)
     specialization_id = mapped_column(ForeignKey("specialization.id"))
+    specialization = relationship("Specialization", backref='users', uselist=False, lazy="selectin")
     desc = Column(String)
     date_employment = Column(Date)
     img = Column(String)
     group_id = mapped_column(ForeignKey("group.id"), nullable=False)
     group = relationship("Group", uselist=False)
+    is_deleted = Column(Boolean, default=False)
 
 
 class ConfirmCode(database.Base):
