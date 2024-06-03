@@ -1,5 +1,5 @@
 from .page import PageBase, Page, PageIn, PageUpdate
-from .card import CardBase, Card, CardIn, CardOptional
+from .card import CardBase, Card, CardIn, CardOptional, CardIdsSelfAndPatient
 from .address import AddressBase, AddressIn, AddressOptional
 from .passport import PassportBase, PassportIn, PassportOptional
 from .family_status import FamilyStatus
@@ -17,6 +17,7 @@ __all__ = [
     Card,
     CardIn,
     CardOptional,
+    CardIdsSelfAndPatient,
     AddressBase,
     AddressIn,
     AddressOptional,

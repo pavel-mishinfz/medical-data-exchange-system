@@ -1,6 +1,6 @@
 from typing import Tuple, Type
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource
-from pydantic import PostgresDsn, Field, FilePath
+from pydantic import PostgresDsn, Field, FilePath, SecretStr
 
 
 class Config(BaseSettings):
@@ -20,6 +20,12 @@ class Config(BaseSettings):
         default='storage/',
         env='PATH_TO_STORAGE',
         alias='PATH_TO_STORAGE'
+    )
+
+    encrypt_key: SecretStr = Field(
+        default='encrypt_key',
+        env='ENCRYPT_KEY',
+        alias='ENCRYPT_KEY'
     )
 
     model_config = SettingsConfigDict(env_file=".env")

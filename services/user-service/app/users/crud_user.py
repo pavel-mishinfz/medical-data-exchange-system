@@ -60,9 +60,7 @@ async def delete_user(
         return False
 
     deleted_user.is_deleted = True
-    session.add(deleted_user)
     await session.commit()
-    await session.refresh(deleted_user)
 
     return deleted_user.is_deleted
 

@@ -1,5 +1,8 @@
 import uuid
+import json
+import base64
 from datetime import datetime, timezone
+from cryptography.fernet import Fernet
 
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -10,6 +13,13 @@ from .schemas import PageIn, PageUpdate, CardIn, CardOptional, DisabilityIn
 from . import crud_address
 from . import crud_passport
 from . import crud_disability
+from . import config
+
+
+cfg: config.Config = config.load_config()
+CIPHER_SUITE: Fernet = Fernet(
+    base64.b64decode(cfg.encrypt_key.get_secret_value())
+)
 
 
 def create_card(
@@ -34,22 +44,22 @@ def create_card(
         is_man=card_in.is_man,
         birthday=card_in.birthday,
         id_address=address.id,
-        phone=card_in.phone,
+        phone=CIPHER_SUITE.encrypt(card_in.phone.encode()),
         is_urban_area=card_in.is_urban_area,
-        number_policy=card_in.number_policy,
-        snils=card_in.snils,
-        insurance_company=card_in.insurance_company,
-        benefit_category_code=card_in.benefit_category_code,
+        number_policy=CIPHER_SUITE.encrypt(card_in.number_policy.encode()),
+        snils=CIPHER_SUITE.encrypt(card_in.snils.encode()),
+        insurance_company=CIPHER_SUITE.encrypt(card_in.insurance_company.encode()),
+        benefit_category_code=CIPHER_SUITE.encrypt(card_in.benefit_category_code.encode()),
         id_passport=passport.id,
         id_family_status=card_in.id_family_status,
         id_education=card_in.id_education,
         id_busyness=card_in.id_busyness,
         id_disability=id_disability,
-        workplace=card_in.workplace,
-        job=card_in.job,
-        blood_type=card_in.blood_type,
+        workplace=CIPHER_SUITE.encrypt(card_in.workplace.encode()),
+        job=CIPHER_SUITE.encrypt(card_in.job.encode()),
+        blood_type=CIPHER_SUITE.encrypt(card_in.blood_type.encode()),
         rh_factor_is_pos=card_in.rh_factor_is_pos,
-        allergy=card_in.allergy,
+        allergy=CIPHER_SUITE.encrypt(card_in.allergy.encode()),
         create_date=datetime.now(timezone.utc)
     )
 
@@ -81,7 +91,8 @@ def get_cards_list(
     """
     Возвращает список медкарт
     """
-    return db.query(models.Card).filter(models.Card.is_deleted == False).all()
+    result = db.query(models.Card.id, models.Card.id_user).filter(models.Card.is_deleted == False).all()
+    return [{'id': item[0], 'id_user': item[1]} for item in result]
 
 
 def update_card(
@@ -102,33 +113,30 @@ def update_card(
     id_disability = before_update_card.id_disability
 
     if card_optional.address:
-        updated_address = crud_address.update_address(db, id_address, card_optional.address)
-        id_address = updated_address.id
+        crud_address.update_address(db, id_address, card_optional.address)
     if card_optional.passport:
-        updated_passport = crud_passport.update_passport(db, id_passport, card_optional.passport)
-        id_passport = updated_passport.id
+        crud_passport.update_passport(db, id_passport, card_optional.passport)
     if card_optional.disability:
-        if None in dict(card_optional.disability).values():
-            crud_disability.delete_disability(db, id_disability)
-            id_disability = None
-        else:
+        if id_disability:
             disability = crud_disability.update_disability(db, id_disability, card_optional.disability)
-            if disability is None:
-                disability = crud_disability.create_disability(db, DisabilityIn(
-                    name=card_optional.disability.name, 
-                    group=card_optional.disability.group, 
-                    create_date=card_optional.disability.create_date)
-                    )
-            id_disability = disability.id
+        else:
+            disability = crud_disability.create_disability(db, DisabilityIn(
+                name=card_optional.disability.name, 
+                group=card_optional.disability.group, 
+                create_date=card_optional.disability.create_date
+            ))
+        id_disability = disability.id
 
-    force_update_fields = {
-        'id_address': id_address,
-        'id_passport': id_passport,
-        'id_disability': id_disability
-    }
+    encoded_card_data = card_optional.model_dump(exclude=exclude_fields, exclude_unset=True)
+    for key, value in encoded_card_data.items():
+        if key in [
+            'phone', 'number_policy', 'snils', 'insurance_company', 'benefit_category_code', 'workplace', 'job', 'blood_type', 'allergy'
+        ]:
+            encoded_card_data[key] = CIPHER_SUITE.encrypt(value.encode())
+
     result = db.query(models.Card) \
         .filter(models.Card.id == card_id) \
-        .update(card_optional.model_dump(exclude=exclude_fields, exclude_unset=True) | force_update_fields)
+        .update(encoded_card_data | {'id_disability': id_disability})
     db.commit()
 
     if result == 1:
@@ -147,7 +155,9 @@ def delete_card(
         return False
 
     deleted_card.is_deleted = True
-    db.add(deleted_card)
+
+    db.query(models.Page).filter(models.Page.id_card == card_id).update({"is_deleted": True})
+
     db.commit()
 
     return deleted_card.is_deleted
@@ -163,7 +173,7 @@ def create_page(
         id_card=card_id,
         id_template=template_id,
         id_doctor=page_in.id_doctor,
-        data=page_in.data,
+        data=CIPHER_SUITE.encrypt(json.dumps(page_in.data).encode()),
         create_date=datetime.now(timezone.utc)
     )
 
@@ -205,6 +215,8 @@ def update_page(
     """
     Обновляет информацию о старнице
     """
+    page_update.data = CIPHER_SUITE.encrypt(json.dumps(page_update.data).encode())
+
     result = db.query(models.Page) \
         .filter(models.Page.id == page_id) \
         .update(page_update.model_dump())
@@ -225,7 +237,6 @@ def delete_page(
     if deleted_page:
         documents = deleted_page.documents
         deleted_page.is_deleted = True
-        db.add(deleted_page)
         db.commit()
         return deleted_page.is_deleted, documents
     return False, None

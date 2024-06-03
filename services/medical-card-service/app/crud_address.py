@@ -1,7 +1,18 @@
+import base64
+
 from sqlalchemy.orm import Session
+
+from cryptography.fernet import Fernet
 
 from .database import models
 from .schemas import AddressIn, AddressOptional
+from . import config
+
+
+cfg: config.Config = config.load_config()
+CIPHER_SUITE: Fernet = Fernet(
+    base64.b64decode(cfg.encrypt_key.get_secret_value())
+)
 
 
 def create_address(db: Session, address_in: AddressIn) -> models.Address:
@@ -9,12 +20,12 @@ def create_address(db: Session, address_in: AddressIn) -> models.Address:
     Создает новую запись адреса в БД
     """
     db_address = models.Address(
-        subject=address_in.subject,
-        district=address_in.district,
-        locality=address_in.locality,
-        street=address_in.street,
-        house=address_in.house,
-        apartment=address_in.apartment
+        subject=CIPHER_SUITE.encrypt(address_in.subject.encode()),
+        district=CIPHER_SUITE.encrypt(address_in.district.encode()),
+        locality=CIPHER_SUITE.encrypt(address_in.locality.encode()),
+        street=CIPHER_SUITE.encrypt(address_in.street.encode()),
+        house=CIPHER_SUITE.encrypt(str(address_in.house).encode()),
+        apartment=CIPHER_SUITE.encrypt(str(address_in.apartment).encode())
     )
 
     db.add(db_address)
@@ -40,9 +51,11 @@ def update_address(
     """
     Обновляет информацию об адресе
     """
+    encoded_address_data = {key: CIPHER_SUITE.encrypt(str(value).encode()) for key, value in address_optional.model_dump(exclude_unset=True).items()}
+
     result = db.query(models.Address) \
         .filter(models.Address.id == address_id) \
-        .update(address_optional.model_dump(exclude_unset=True))
+        .update(encoded_address_data)
     db.commit()
 
     if result == 1:

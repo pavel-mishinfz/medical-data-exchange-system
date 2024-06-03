@@ -1,7 +1,18 @@
+import base64
+
 from sqlalchemy.orm import Session
+
+from cryptography.fernet import Fernet
 
 from .database import models
 from .schemas import PassportIn, PassportOptional
+from . import config
+
+
+cfg: config.Config = config.load_config()
+CIPHER_SUITE: Fernet = Fernet(
+    base64.b64decode(cfg.encrypt_key.get_secret_value())
+)
 
 
 def create_passport(db: Session, passport: PassportIn) -> models.Passport:
@@ -9,8 +20,8 @@ def create_passport(db: Session, passport: PassportIn) -> models.Passport:
     Создает новую запись паспорта в БД
     """
     db_passport = models.Passport(
-        series=passport.series,
-        number=passport.number
+        series=CIPHER_SUITE.encrypt(passport.series.encode()),
+        number=CIPHER_SUITE.encrypt(passport.number.encode())
     )
 
     db.add(db_passport)
@@ -36,9 +47,11 @@ def update_passport(
     """
     Обновляет информацию о паспорте
     """
+    encoded_passport_data = {key: CIPHER_SUITE.encrypt(value.encode()) for key, value in passport_optional.model_dump(exclude_unset=True).items()}
+
     result = db.query(models.Passport) \
         .filter(models.Passport.id == passport_id) \
-        .update(passport_optional.model_dump(exclude_unset=True))
+        .update(encoded_passport_data)
     db.commit()
 
     if result == 1:

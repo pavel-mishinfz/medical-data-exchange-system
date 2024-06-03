@@ -1,18 +1,20 @@
+import base64
 import json
 import os
 import pathlib
 import uuid
+from cryptography.fernet import Fernet
 
 from fastapi import FastAPI, Depends, HTTPException, Body, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-
 
 from pydicom import dcmread
 from sqlalchemy.orm import Session
 from .schemas import (Card,
                       CardIn,
                       CardOptional,
+                      CardIdsSelfAndPatient,
                       Page,
                       PageIn,
                       PageUpdate,
@@ -24,6 +26,7 @@ from .schemas import (Card,
                       Document)
 from .database import DB_INITIALIZER
 from . import crud, config, crud_config, crud_document
+from .decrypt import decrypt
 
 
 description = """
@@ -60,6 +63,9 @@ tags_metadata = [
 
 cfg: config.Config = config.load_config()
 SessionLocal = DB_INITIALIZER.init_database(str(cfg.postgres_dsn))
+CIPHER_SUITE: Fernet = Fernet(
+    base64.b64decode(cfg.encrypt_key.get_secret_value())
+)
 
 app = FastAPI(title='Medical Card Service',
               description=description,
@@ -87,12 +93,13 @@ def get_db():
 
 @app.post('/cards', response_model=Card, summary='Добавляет медкарту в базу', tags=["cards"])
 def add_card(card_in: CardIn, db: Session = Depends(get_db)):
-    return crud.create_card(db, card_in)
+    created_card = crud.create_card(db, card_in)
+    return decrypt.decrypt_card(created_card, CIPHER_SUITE)
 
 
 @app.get('/cards',
-         response_model=list[Card],
-         summary='Возвращает список медкарт',
+         response_model=list[CardIdsSelfAndPatient],
+         summary='Возвращает список идентификаторов карты и пациента',
          tags=["cards"])
 def get_cards_list(db: Session = Depends(get_db)):
     return crud.get_cards_list(db)
@@ -106,7 +113,7 @@ def get_card(card_id: int, db: Session = Depends(get_db)):
     card = crud.get_card(db, card_id=card_id)
     if card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найдена")
-    return card
+    return decrypt.decrypt_card(card, CIPHER_SUITE)
 
 
 @app.get(
@@ -118,7 +125,7 @@ def get_card_by_user_id(user_id: uuid.UUID, db: Session = Depends(get_db)):
     card = crud.get_card(db, user_id=user_id)
     if card is None:
         raise HTTPException(status_code=404, detail="Медкарта не найдена")
-    return card
+    return decrypt.decrypt_card(card, CIPHER_SUITE)
 
 
 @app.patch('/cards/{card_id}', response_model=Card, summary='Обновляет медкарту', tags=["cards"])
@@ -129,7 +136,7 @@ def update_card(
     ):
     card = crud.update_card(db, card_id, card_optional)
     if card is not None:
-        return card
+        return decrypt.decrypt_card(card, CIPHER_SUITE)
     raise HTTPException(status_code=404, detail="Медкарта не найдена")
 
 
@@ -176,7 +183,8 @@ def get_list_busyness(db: Session = Depends(get_db)):
 def add_page(card_id: int, template_id: int, page_in: PageIn, db: Session = Depends(get_db)):
     card = crud.get_card(db, card_id, None)
     if card:
-        return crud.create_page(db, card_id, template_id, page_in)
+        created_page = crud.create_page(db, card_id, template_id, page_in)
+        return decrypt.decrypt_page(created_page, CIPHER_SUITE)
     raise HTTPException(status_code=404, detail="Медкарта не найдена")
 
 
@@ -185,12 +193,13 @@ def get_page(page_id: uuid.UUID, db: Session = Depends(get_db)):
     page = crud.get_page(db, page_id)
     if page is None:
         raise HTTPException(status_code=404, detail="Страница не найдена")
-    return page
+    return decrypt.decrypt_page(page, CIPHER_SUITE)
 
 
 @app.get('/pages/card/{card_id}', response_model=list[Page], summary='Возвращает список страниц', tags=["pages"])
 def get_list_pages(card_id: int, db: Session = Depends(get_db)):
-    return crud.get_pages(db, card_id)
+    pages = crud.get_pages(db, card_id)
+    return [decrypt.decrypt_page(page, CIPHER_SUITE) for page in pages]
 
 
 @app.put('/pages/{page_id}', response_model=Page, summary='Обновляет страницу', tags=["pages"])
@@ -201,7 +210,7 @@ def update_page(
     ):
     page = crud.update_page(db, page_id, page_update)
     if page is not None:
-        return page
+        return decrypt.decrypt_page(page, CIPHER_SUITE)
     raise HTTPException(status_code=404, detail="Страница не найдена")
 
 

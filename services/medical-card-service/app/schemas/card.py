@@ -81,3 +81,14 @@ class CardOptional(CardBase):
     id_education: Optional[int] = None
     id_busyness: Optional[int] = None
     disability: Optional[DisabilityOptional] = None
+
+
+class CardIdsSelfAndPatient(BaseModel):
+    """
+    Модель для получения id медкарты и пациента
+    """
+    id: int
+    id_user: uuid.UUID
+
+    class ConfigDict:
+        from_attribute = True
