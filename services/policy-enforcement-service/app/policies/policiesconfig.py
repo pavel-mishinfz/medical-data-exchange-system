@@ -19,6 +19,7 @@ class Policy(BaseModel):
     service: str
     rule: str = None
     resource: str
+    resource_pattern: str | None = None
     methods: str
     white_list: bool = False
 

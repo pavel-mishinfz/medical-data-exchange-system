@@ -2,12 +2,23 @@ import logging
 from typing import Any, Dict
 
 import httpx
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+from sqlalchemy.orm import Session
+
 from . import config, schemes
 from .policies.requestenforcer import EnforceResult, RequestEnforcer
+from .database.database import DB_INITIALIZER
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 # setup logging
@@ -18,6 +29,8 @@ logging.basicConfig(
 )
 
 app_config: config.Config = config.load_config()
+
+SessionLocal = DB_INITIALIZER.init_database(app_config.postgres_dsn.unicode_string())
 
 policy_checker: RequestEnforcer = RequestEnforcer(
     app_config.policies_config_path, app_config.jwt_secret.get_secret_value()
@@ -49,11 +62,11 @@ app.add_middleware(
     "/{path_name:path}",
     methods=["GET", "DELETE", "PATCH", "POST", "PUT", "HEAD", "OPTIONS", "CONNECT", "TRACE"]
 )
-async def catch_all(request: Request, path_name: str):
-    enforce_result: EnforceResult = policy_checker.enforce(request)
+async def catch_all(request: Request, path_name: str, db: Session = Depends(get_db)):
+    enforce_result: EnforceResult = policy_checker.enforce(request, db)
     if not enforce_result.access_allowed:
         logger.info('The user does not have enough permissions. A blocked route: %s', path_name)
-        raise HTTPException(detail='Content not found', status_code=404)
+        raise HTTPException(detail='Метод не доступен', status_code=404)
 
     return await redirect_user_request(request, enforce_result)
 

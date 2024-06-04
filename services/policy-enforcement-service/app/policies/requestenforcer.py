@@ -1,3 +1,5 @@
+import uuid
+import copy
 import re
 import tempfile
 
@@ -6,8 +8,10 @@ import jwt
 import yaml
 from fastapi import Request
 from pydantic.dataclasses import dataclass
+from sqlalchemy.orm import Session
 
 from .policiesconfig import PoliciesConfig, Policy, Service
+from ..crud import crud_card
 
 
 @dataclass
@@ -22,13 +26,14 @@ class RequestEnforcer:
         self.config: PoliciesConfig = self.__load_config(config_path=config_path)
         self.enforcer: casbin.Enforcer = self.__create_enforcer()
 
-    def enforce(self, request: Request):
+    def enforce(self, request: Request, db: Session | None = None):
         in_whitelist, service_name = self.__is_request_in_whitelist(request)
         if in_whitelist:
             service = self.__get_service_by_name(service_name)
             return EnforceResult(True, service.entrypoint.unicode_string())
 
-        access_allowed, service_name = self.__check_by_policy(request)
+        access_allowed, service_name = self.__check_by_policy(request, db)
+        print(access_allowed)
         if access_allowed:
             service = self.__get_service_by_name(service_name)
             return EnforceResult(True, service.entrypoint.unicode_string())
@@ -74,15 +79,53 @@ class RequestEnforcer:
         except:
             return None
 
-    def __check_by_policy(self, request: Request) -> tuple[bool, str] | tuple[bool, None]:
+    def __enrich_token_data(self, token_data: dict, resource_data: dict, db: Session):
+        result = copy.deepcopy(token_data)
+        user_id = uuid.UUID(token_data['sub'])
+
+        # Add empty available pages list
+        result.update({ 'available_pages_of_medical_card': [] })
+
+        page_id = resource_data['params'].get('page_id', None)
+        if page_id is not None:
+            # Add available pages of medical card
+            available_pages_of_medical_card = crud_card.get_available_pages_of_medical_card(db=db, doctor_id=user_id)
+            result['available_pages_of_medical_card'].extend([str(page) for page in available_pages_of_medical_card])
+
+        return result
+
+    @staticmethod
+    def __get_data_by_pattern(resource: str, pattern: str):
+        result = re.search(pattern, resource)
+        if result is not None:
+            return result.groupdict()
+        return {}
+
+    def __get_resource_data_by_pattern(self, request: Request) -> dict:
+        resource = '/' + request.path_params['path_name']
+        for p in self.config.policies:
+            if re.fullmatch(p.resource, resource) is not None and request.method in p.method_list:
+                if p.resource_pattern is None:
+                    break
+                return self.__get_data_by_pattern(resource, p.resource_pattern)
+        return {}
+
+    def __check_by_policy(self, request: Request, db: Session | None = None) -> tuple[bool, str] | tuple[bool, None]:
         token_data = self.__extract_token_data(request)
 
         if token_data is None:
             return False, None
 
         resource = '/' + request.path_params['path_name']
+        resource_data = {
+            'resource': resource,
+            'params': {},
+            'body': {}
+        }
+        resource_data['params'].update(self.__get_resource_data_by_pattern(request))
 
-        access_allowed = self.enforcer.enforce(token_data, resource, request.method)
+        token_data = self.__enrich_token_data(token_data, resource_data, db)
+        access_allowed = self.enforcer.enforce(token_data, resource_data, request.method)
         if access_allowed is False:
             return False, None
 

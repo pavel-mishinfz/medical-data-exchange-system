@@ -1,10 +1,16 @@
 from typing import Type, Tuple
 
-from pydantic import Field, FilePath, SecretStr
+from pydantic import Field, FilePath, SecretStr, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource
 
 
 class Config(BaseSettings):
+    postgres_dsn: PostgresDsn = Field(
+        default='postgresql://user:pass@localhost:5432/foobar',
+        env='POSTGRES_DSN',
+        alias='POSTGRES_DSN'
+    )
+
     jwt_secret: SecretStr = Field(
         default='jwt_secret',
         env='JWT_SECRET',
