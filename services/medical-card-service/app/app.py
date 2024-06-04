@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from pydicom import dcmread
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from .schemas import (Card,
                       CardIn,
@@ -182,18 +183,20 @@ def get_list_busyness(db: Session = Depends(get_db)):
     )
 def add_page(card_id: int, template_id: int, page_in: PageIn, db: Session = Depends(get_db)):
     card = crud.get_card(db, card_id, None)
+    if not check_template(db, template_id):
+        raise HTTPException(status_code=404, detail="Шаблон не найден")
     if card:
         created_page = crud.create_page(db, card_id, template_id, page_in)
         return decrypt.decrypt_page(created_page, CIPHER_SUITE)
     raise HTTPException(status_code=404, detail="Медкарта не найдена")
 
 
-@app.get('/pages/{page_id}', response_model=Page, summary='Возвращает страницу', tags=["pages"])
-def get_page(page_id: uuid.UUID, db: Session = Depends(get_db)):
-    page = crud.get_page(db, page_id)
-    if page is None:
-        raise HTTPException(status_code=404, detail="Страница не найдена")
-    return decrypt.decrypt_page(page, CIPHER_SUITE)
+# @app.get('/pages/{page_id}', response_model=Page, summary='Возвращает страницу', tags=["pages"])
+# def get_page(page_id: uuid.UUID, db: Session = Depends(get_db)):
+#     page = crud.get_page(db, page_id)
+#     if page is None:
+#         raise HTTPException(status_code=404, detail="Страница не найдена")
+#     return decrypt.decrypt_page(page, CIPHER_SUITE)
 
 
 @app.get('/pages/card/{card_id}', response_model=list[Page], summary='Возвращает список страниц', tags=["pages"])
@@ -385,3 +388,14 @@ def remove_documents_of_page_from_storage(documents):
 
 def delete_file_from_storage(path_to_file: str):
     os.remove(path_to_file)
+
+
+def check_template(
+        db: Session, template_id: uuid.UUID
+    ) -> bool:
+
+    result = db.execute(
+        text("SELECT id FROM public.templates WHERE id = :template_id"),
+        {"template_id": str(template_id)}
+    ).fetchone()
+    return bool(result)

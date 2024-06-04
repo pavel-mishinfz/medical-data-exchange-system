@@ -36,6 +36,21 @@ def create_card(
         disability = crud_disability.create_disability(db, card_in.disability)
         id_disability = disability.id
 
+    optional_encrypt_fields_list = {
+        "insurance_company",
+        "benefit_category_code",
+        "workplace",
+        "job",
+        "blood_type",
+        "allergy"
+    }
+
+    card_optional_encrypt_fields = card_in.model_dump(include=optional_encrypt_fields_list)
+
+    for key, value in card_optional_encrypt_fields.items():
+        if value:
+            card_optional_encrypt_fields[key] = CIPHER_SUITE.encrypt(card_optional_encrypt_fields[key].encode())
+
     db_card = models.Card(
         id_user=card_in.id_user,
         name=card_in.name,
@@ -48,18 +63,18 @@ def create_card(
         is_urban_area=card_in.is_urban_area,
         number_policy=CIPHER_SUITE.encrypt(card_in.number_policy.encode()),
         snils=CIPHER_SUITE.encrypt(card_in.snils.encode()),
-        insurance_company=CIPHER_SUITE.encrypt(card_in.insurance_company.encode()),
-        benefit_category_code=CIPHER_SUITE.encrypt(card_in.benefit_category_code.encode()),
+        insurance_company=card_optional_encrypt_fields["insurance_company"],
+        benefit_category_code=card_optional_encrypt_fields["benefit_category_code"],
         id_passport=passport.id,
         id_family_status=card_in.id_family_status,
         id_education=card_in.id_education,
         id_busyness=card_in.id_busyness,
         id_disability=id_disability,
-        workplace=CIPHER_SUITE.encrypt(card_in.workplace.encode()),
-        job=CIPHER_SUITE.encrypt(card_in.job.encode()),
-        blood_type=CIPHER_SUITE.encrypt(card_in.blood_type.encode()),
+        workplace=card_optional_encrypt_fields["workplace"],
+        job=card_optional_encrypt_fields["job"],
+        blood_type=card_optional_encrypt_fields["blood_type"],
         rh_factor_is_pos=card_in.rh_factor_is_pos,
-        allergy=CIPHER_SUITE.encrypt(card_in.allergy.encode()),
+        allergy=card_optional_encrypt_fields["allergy"],
         create_date=datetime.now(timezone.utc)
     )
 
@@ -131,7 +146,7 @@ def update_card(
     for key, value in encoded_card_data.items():
         if key in [
             'phone', 'number_policy', 'snils', 'insurance_company', 'benefit_category_code', 'workplace', 'job', 'blood_type', 'allergy'
-        ]:
+        ] and value:
             encoded_card_data[key] = CIPHER_SUITE.encrypt(value.encode())
 
     result = db.query(models.Card) \
