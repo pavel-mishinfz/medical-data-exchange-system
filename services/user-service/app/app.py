@@ -515,6 +515,23 @@ async def check_confirm_code(
     await users.crud_confirm_code.activate_code(current_user.id, date, session)
 
 
+@app.get(
+    "/storage/{path:path}",
+    summary="Возвращает изображение пользователя",
+    tags=["users"])
+async def serve_user_static_file(path: str):
+    return StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage"))(path)
+
+
+@app.get(
+    "/storage/specializations/{path:path}",
+    summary="Возвращает изображение специализации",
+    tags=["users"])
+async def serve_spec_static_file(file_name: str):
+    static_files = StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage", "specializations"))
+    return await static_files.get_response(file_name)
+
+
 @app.on_event("startup")
 async def on_startup():
     await database.DB_INITIALIZER.init_database(
