@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Integer, String, UUID, Text, TIMESTAMP, ForeignKey, func, BigInteger, Date, CHAR
+from sqlalchemy import Column, Integer, String, UUID, Text, TIMESTAMP, ForeignKey, func, BigInteger, Date, CHAR, Boolean, LargeBinary
 from sqlalchemy.orm import mapped_column, relationship
 
 from .database import Base
@@ -17,12 +17,12 @@ class Message(Base):
     __tablename__ = "message"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    message = Column(Text, nullable=False)
+    message = Column(LargeBinary)
     sender_id = Column(UUID(as_uuid=True), nullable=False)
     chat_id = Column(Integer, nullable=False)
     send_date = Column(TIMESTAMP, default=func.now())
-    update_date = Column(TIMESTAMP, default=None, onupdate=func.now())
-    documents = relationship('MessageDocument', backref='msg', lazy="selectin", cascade='all, delete')
+    documents = relationship('MessageDocument', backref='msg', lazy="selectin")
+    is_deleted = Column(Boolean, default=False)
 
 
 class MessageDocument(Base):
@@ -32,6 +32,7 @@ class MessageDocument(Base):
     name = Column(String, nullable=False)
     path_to_file = Column(String, nullable=False)
     id_message = mapped_column(ForeignKey('message.id'), nullable=False)
+    is_deleted = Column(Boolean, default=False)
 
 
 class Meeting(Base):

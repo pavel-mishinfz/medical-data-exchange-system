@@ -34,6 +34,12 @@ class Config(BaseSettings):
         alias='PATH_TO_STORAGE'
     )
 
+    encrypt_key: SecretStr = Field(
+        default='encrypt_key',
+        env='ENCRYPT_KEY',
+        alias='ENCRYPT_KEY'
+    )
+
     model_config = SettingsConfigDict(env_file=".env")
 
     @classmethod

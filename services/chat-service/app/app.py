@@ -4,7 +4,7 @@ import os
 import pathlib
 import uuid
 import requests
-
+from cryptography.fernet import Fernet
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Request, UploadFile, File
 from fastapi.staticfiles import StaticFiles
@@ -41,6 +41,10 @@ app.add_middleware(
     allow_headers=["*"],  # Разрешите все заголовки
 )
 
+CIPHER_SUITE: Fernet = Fernet(
+    base64.b64decode(app_config.encrypt_key.get_secret_value())
+)
+
 ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.resolve()
 app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
 
@@ -48,7 +52,6 @@ room_managers = {}
 
 auth_token_url = 'https://zoom.us/oauth/token'
 api_base_url = "https://api.zoom.us/v2"
-
 
 
 class ConnectionManager:
@@ -62,21 +65,26 @@ class ConnectionManager:
     async def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
 
-    async def broadcast(self, msg: MessageIn, files: list):
-        message = await self.add_messages_to_database(msg)
+    async def broadcast(self, message_in: MessageIn, files: list):
+        message = await self.add_messages_to_database(message_in)
         for file in files:
             await self.add_files_to_database(message.id, file)
         data = {
-            'msg': message.message,
-            'files': files
-            }
+            'id': str(message.id),
+            'sender_id': str(message.sender_id),
+            'send_date': message.send_date.isoformat(),
+            'message': message.message,
+            'documents': files
+        }
         for connection in self.active_connections:
             await connection.send_text(json.dumps(data))
 
     @staticmethod
     async def add_messages_to_database(message: MessageIn):
         async for async_session in database.get_async_session():
-            return await crud.create_message(async_session, message)
+            created_message = await crud.create_message(async_session, message)
+            created_message.message = CIPHER_SUITE.decrypt(created_message.message).decode()
+            return created_message
 
     @staticmethod
     async def add_files_to_database(message_id: uuid.UUID, file: dict):
@@ -94,16 +102,16 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int, client_id: uuid
     await manager.connect(websocket)
     try:
         while True:
-            text = await websocket.receive_text()
-            data = json.loads(text)
-            await manager.broadcast(MessageIn(message=data['msg'], chat_id=chat_id, sender_id=client_id), data['files'])
+            message = await websocket.receive_text()
+            data = json.loads(message)
+            await manager.broadcast(MessageIn(message=data['message'], chat_id=chat_id, sender_id=client_id), data['files'])
     except WebSocketDisconnect:
         await manager.disconnect(websocket)
         
-templates = Jinja2Templates(directory="app/templates")
-@app.get("/chat", tags=["chat"])
-def get_chat_page(request: Request):
-    return templates.TemplateResponse("chat.html", {"request": request})
+# templates = Jinja2Templates(directory="app/templates")
+# @app.get("/chat", tags=["chat"])
+# def get_chat_page(request: Request):
+#     return templates.TemplateResponse("chat.html", {"request": request})
 
 
 @app.post(
@@ -139,21 +147,24 @@ async def get_list_chat_for_patient(
     return await crud.get_list_chat(session, patient_id=patient_id)
 
 
-@app.post("/messages", response_model=Message, tags=["message"])
-async def add_message(
-    message: MessageIn, 
-    session: AsyncSession = Depends(database.get_async_session)) -> Message:
-    return await crud.create_message(session, message)
+# @app.post("/messages", response_model=Message, tags=["message"])
+# async def add_message(
+#     message: MessageIn, 
+#     session: AsyncSession = Depends(database.get_async_session)) -> Message:
+#     created_message = await crud.create_message(session, message)
+#     created_message.message = CIPHER_SUITE.decrypt(created_message.message).decode()
+#     return created_message
 
 
-@app.get("/messages/{message_id}", response_model=Message, tags=["message"])
-async def get_message(
-    message_id: uuid.UUID, 
-    session: AsyncSession = Depends(database.get_async_session)) -> Message:
-    msg = await crud.get_message(session, message_id)
-    if msg is not None:
-        return msg
-    raise HTTPException(status_code=404, detail="Сообщение не найдено")
+# @app.get("/messages/{message_id}", response_model=Message, tags=["message"])
+# async def get_message(
+#     message_id: uuid.UUID, 
+#     session: AsyncSession = Depends(database.get_async_session)) -> Message:
+#     msg = await crud.get_message(session, message_id)
+#     if msg is not None:
+#         msg.message = CIPHER_SUITE.decrypt(msg.message).decode()
+#         return msg
+#     raise HTTPException(status_code=404, detail="Сообщение не найдено")
 
 
 @app.get("/messages/last/{chat_id}", response_model=list[Message], tags=["message"])
@@ -162,19 +173,22 @@ async def get_last_messages(
     skip: int = 0,
     limit: int = 20,
     session: AsyncSession = Depends(database.get_async_session)) -> list[Message]:
-    return await crud.get_last_messages(session, chat_id, skip, limit)
+    messages = await crud.get_last_messages(session, chat_id, skip, limit)
+    for msg in messages:
+        msg.message = CIPHER_SUITE.decrypt(msg.message).decode()
+    return messages
 
 
-@app.put("/messages/{message_id}", response_model=Message, tags=['message'])
-async def update_message(
-    message_id: uuid.UUID,
-    message_update: MessageUpdate, 
-    session: AsyncSession = Depends(database.get_async_session)
-    ) -> Message:
-    message = await crud.update_message(session, message_id, message_update)
-    if message is not None:
-        return message
-    raise HTTPException(status_code=404, detail="Сообщение не найдено")
+# @app.put("/messages/{message_id}", response_model=Message, tags=['message'])
+# async def update_message(
+#     message_id: uuid.UUID,
+#     message_update: MessageUpdate, 
+#     session: AsyncSession = Depends(database.get_async_session)
+#     ) -> Message:
+#     message = await crud.update_message(session, message_id, message_update)
+#     if message is not None:
+#         return message
+#     raise HTTPException(status_code=404, detail="Сообщение не найдено")
 
 
 @app.delete("/messages/{message_id}", response_model=Message, tags=['message'])
@@ -185,35 +199,34 @@ async def delete_message(
     deleted_message = await crud.delete_message(session, message_id)
     if deleted_message is None:
         raise HTTPException(status_code=404, detail="Сообщение не найдено")
-    for document in deleted_message.documents:
-        os.remove(document.path_to_file)
+    deleted_message.message = CIPHER_SUITE.decrypt(deleted_message.message).decode()
     return deleted_message
 
 
 @app.post("/messages/files", tags=["message"])
-async def add_files(
+async def add_files_to_storage(
     files: list[UploadFile] = File(...)
     ):
-    data_files = []
+    path_and_name_saved_files = []
     for file in files:
         extension = EXTENSIONS.get(file.content_type)
         if extension:
             path_to_file = create_path_to_file(app_config.path_to_storage, file.filename)
             create_file(file, path_to_file)
-            data_files.append({'name': file.filename, 'path_to_file': path_to_file})
-    return data_files
+            path_and_name_saved_files.append({'name': file.filename, 'path_to_file': path_to_file})
+    return path_and_name_saved_files
 
 
-@app.delete("/messages/files/{file_id}", response_model=MessageDocument, tags=['message'])
-async def delete_file(
-    file_id: uuid.UUID,
-    session: AsyncSession = Depends(database.get_async_session)
-    ): 
-    deleted_file = await crud.delete_file(session, file_id)
-    if deleted_file is not None:
-        os.remove(deleted_file.path_to_file)
-        return deleted_file
-    raise HTTPException(status_code=404, detail="Документ не найден")
+# @app.delete("/messages/files/{file_id}", response_model=MessageDocument, tags=['message'])
+# async def delete_file(
+#     file_id: uuid.UUID,
+#     session: AsyncSession = Depends(database.get_async_session)
+#     ): 
+#     deleted_file = await crud.delete_file(session, file_id)
+#     if deleted_file is not None:
+#         os.remove(deleted_file.path_to_file)
+#         return deleted_file
+#     raise HTTPException(status_code=404, detail="Документ не найден")
 
 
 @app.post(
@@ -249,10 +262,9 @@ async def get_meetings(
 
 @app.on_event("startup")
 async def on_startup():
-
     await database.DB_INITIALIZER.init_database(
         app_config.postgres_dsn_async.unicode_string()
-        )
+    )
 
 
 async def get_meeting_id(topic, start_date, start_time):
