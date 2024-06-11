@@ -4,10 +4,12 @@ import os
 import pathlib
 import uuid
 import requests
+import aiofiles
 from cryptography.fernet import Fernet
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Request, UploadFile, File
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from .schemas import Chat, ChatIn, Message, MessageIn, MessageUpdate, MessageDocument
@@ -16,7 +18,6 @@ from . import crud
 from . import config
 from . import database
 
-from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -46,7 +47,6 @@ CIPHER_SUITE: Fernet = Fernet(
 )
 
 ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.resolve()
-app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
 
 room_managers = {}
 
@@ -65,16 +65,19 @@ class ConnectionManager:
     async def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
 
-    async def broadcast(self, message_in: MessageIn, files: list):
+    async def broadcast(self, message_in: MessageIn, files: list | None):
         message = await self.add_messages_to_database(message_in)
-        for file in files:
+        path_and_name_saved_files = []
+        if files:
+            path_and_name_saved_files = await add_files_to_storage(message.chat_id, files)
+        for file in path_and_name_saved_files:
             await self.add_files_to_database(message.id, file)
         data = {
             'id': str(message.id),
             'sender_id': str(message.sender_id),
             'send_date': message.send_date.isoformat(),
             'message': message.message,
-            'documents': files
+            'documents': path_and_name_saved_files
         }
         for connection in self.active_connections:
             await connection.send_text(json.dumps(data))
@@ -108,11 +111,6 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int, client_id: uuid
     except WebSocketDisconnect:
         await manager.disconnect(websocket)
         
-# templates = Jinja2Templates(directory="app/templates")
-# @app.get("/chat", tags=["chat"])
-# def get_chat_page(request: Request):
-#     return templates.TemplateResponse("chat.html", {"request": request})
-
 
 @app.post(
         "/chats",
@@ -120,51 +118,36 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int, client_id: uuid
         response_model=Chat,
         summary='Создает чат')
 async def add_chat(chat: ChatIn, session: AsyncSession = Depends(database.get_async_session)) -> Chat:
-    return await crud.create_chat(session, chat)
+    created_chat = await crud.create_chat(session, chat)
+    chat_directory = os.path.join(ROOT_SERVICE_DIR, str(created_chat.id))
+    os.makedirs(chat_directory)
+    return created_chat
 
 
 @app.get(
-        "/chats/doctor/{doctor_id}",
+        "/chats/{user_id}",
          tags=["chat"], 
          response_model=list[Chat],
-         summary='Возвращает список чатов врача')
+         summary='Возвращает список чатов пользователя')
 async def get_list_chat_for_doctor(
-    doctor_id: uuid.UUID, 
+    user_id: uuid.UUID, 
     session: AsyncSession = Depends(database.get_async_session)
     ) -> list[Chat]:
-    return await crud.get_list_chat(session, doctor_id=doctor_id)
+    return await crud.get_list_chat(session, user_id)
 
 
 @app.get(
-        "/chats/patient/{patient_id}",
-         tags=["chat"], 
-         response_model=list[Chat],
-         summary='Возвращает список чатов пациента')
-async def get_list_chat_for_patient(
-    patient_id: uuid.UUID, 
-    session: AsyncSession = Depends(database.get_async_session)
-    ) -> list[Chat]:
-    return await crud.get_list_chat(session, patient_id=patient_id)
+    "/chat_storage/{chat_id}/{file_name}",
+    summary="Возвращает изображение пользователя",
+    tags=["users"])
+async def serve_chat_static_file(chat_id: int, file_name: str):
+    chat_storage = os.path.join(ROOT_SERVICE_DIR, "chat_storage", str(chat_id))
+    file_path = os.path.join(chat_storage, file_name)
 
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Файл не найден")
 
-# @app.post("/messages", response_model=Message, tags=["message"])
-# async def add_message(
-#     message: MessageIn, 
-#     session: AsyncSession = Depends(database.get_async_session)) -> Message:
-#     created_message = await crud.create_message(session, message)
-#     created_message.message = CIPHER_SUITE.decrypt(created_message.message).decode()
-#     return created_message
-
-
-# @app.get("/messages/{message_id}", response_model=Message, tags=["message"])
-# async def get_message(
-#     message_id: uuid.UUID, 
-#     session: AsyncSession = Depends(database.get_async_session)) -> Message:
-#     msg = await crud.get_message(session, message_id)
-#     if msg is not None:
-#         msg.message = CIPHER_SUITE.decrypt(msg.message).decode()
-#         return msg
-#     raise HTTPException(status_code=404, detail="Сообщение не найдено")
+    return FileResponse(file_path)
 
 
 @app.get("/messages/last/{chat_id}", response_model=list[Message], tags=["message"])
@@ -179,18 +162,6 @@ async def get_last_messages(
     return messages
 
 
-# @app.put("/messages/{message_id}", response_model=Message, tags=['message'])
-# async def update_message(
-#     message_id: uuid.UUID,
-#     message_update: MessageUpdate, 
-#     session: AsyncSession = Depends(database.get_async_session)
-#     ) -> Message:
-#     message = await crud.update_message(session, message_id, message_update)
-#     if message is not None:
-#         return message
-#     raise HTTPException(status_code=404, detail="Сообщение не найдено")
-
-
 @app.delete("/messages/{message_id}", response_model=Message, tags=['message'])
 async def delete_message(
     message_id: uuid.UUID,
@@ -201,32 +172,6 @@ async def delete_message(
         raise HTTPException(status_code=404, detail="Сообщение не найдено")
     deleted_message.message = CIPHER_SUITE.decrypt(deleted_message.message).decode()
     return deleted_message
-
-
-@app.post("/messages/files", tags=["message"])
-async def add_files_to_storage(
-    files: list[UploadFile] = File(...)
-    ):
-    path_and_name_saved_files = []
-    for file in files:
-        extension = EXTENSIONS.get(file.content_type)
-        if extension:
-            path_to_file = create_path_to_file(app_config.path_to_storage, file.filename)
-            create_file(file, path_to_file)
-            path_and_name_saved_files.append({'name': file.filename, 'path_to_file': path_to_file})
-    return path_and_name_saved_files
-
-
-# @app.delete("/messages/files/{file_id}", response_model=MessageDocument, tags=['message'])
-# async def delete_file(
-#     file_id: uuid.UUID,
-#     session: AsyncSession = Depends(database.get_async_session)
-#     ): 
-#     deleted_file = await crud.delete_file(session, file_id)
-#     if deleted_file is not None:
-#         os.remove(deleted_file.path_to_file)
-#         return deleted_file
-#     raise HTTPException(status_code=404, detail="Документ не найден")
 
 
 @app.post(
@@ -337,15 +282,28 @@ def generate_basic_auth_header(client_id, client_secret):
     return base64_encoded_str
 
 
-def create_path_to_file(path_to_storage: str, file_name: str):
+async def add_files_to_storage(chat_id: int, files: list):
+    path_and_name_saved_files = []
+    for file_data in files:
+        extension = EXTENSIONS.get(file_data['mime_type'])
+        if extension:
+            path_to_file = await create_path_to_file(app_config.path_to_storage, str(chat_id), file_data['file_name'])
+            file_content = base64.b64decode(file_data['file_content'])
+            await create_file(file_content, path_to_file)
+            path_and_name_saved_files.append({'name': file_data['file_name'], 'path_to_file': path_to_file})
+    return path_and_name_saved_files
+
+
+async def create_path_to_file(path_to_storage: str, dir_name: str, file_name: str):
     extension = pathlib.Path(file_name).suffix
-    return os.path.join(path_to_storage, str(uuid.uuid4()) + extension)
+    path_to_storage = path_to_storage.split('/')[0]
+    return os.path.join(path_to_storage, dir_name, str(uuid.uuid4()) + extension)
 
 
-def create_file(file: UploadFile, path_to_file: str):
+async def create_file(file_content: bytes, path_to_file: str):
     try:
-        with open(path_to_file, 'wb') as out_file:
-            out_file.write(file.file.read())
+        async with aiofiles.open(path_to_file, 'wb') as out_file:
+            await out_file.write(file_content)
     except Exception:
         raise HTTPException(status_code=500, detail="Ошибка при работе с файлом")
     

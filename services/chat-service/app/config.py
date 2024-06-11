@@ -29,7 +29,7 @@ class Config(BaseSettings):
     )
 
     path_to_storage: str = Field(
-        default='storage/',
+        default='chat_storage/',
         env='PATH_TO_STORAGE',
         alias='PATH_TO_STORAGE'
     )

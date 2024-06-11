@@ -35,8 +35,7 @@ async def create_chat(session: AsyncSession, chat_in: ChatIn) -> models.Chat:
 
 async def get_list_chat(
         session: AsyncSession, 
-        doctor_id: uuid.UUID | None = None, 
-        patient_id: uuid.UUID | None = None) -> list[models.Chat]:
+        user_id: uuid.UUID) -> list[models.Chat]:
     """
     Возвращает список чатов врача или пациента
     """ 
@@ -45,9 +44,10 @@ async def get_list_chat(
         select(models.Chat)
         .filter(
             or_(
-                models.Chat.doctor_id == doctor_id,
-                models.Chat.patient_id == patient_id)
-                )  
+                models.Chat.doctor_id == user_id,
+                models.Chat.patient_id == user_id
+            )
+        )  
     )
     result = await session.execute(stmt)
     return result.scalars().all()
