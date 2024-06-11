@@ -1,23 +1,23 @@
 services:
+    - name: user-service
+      # entrypoint: http://user-service:5000/
+      entrypoint: http://127.0.0.1:8000/
+      inject_token_in_swagger: True
     - name: template-service
       # entrypoint: http://template-service:5000/
-      entrypoint: http://127.0.0.1:8003/
+      entrypoint: http://127.0.0.1:8001/
       inject_token_in_swagger: True
     - name: medical-card-service
       # entrypoint: http://medical-card-service:5000/
       entrypoint: http://127.0.0.1:8002/
       inject_token_in_swagger: True
-    - name: user-service
-      # entrypoint: http://user-service:5000/
-      entrypoint: http://127.0.0.1:8000/
-      inject_token_in_swagger: True
     - name: health-diary-service
       # entrypoint: http://health-diary-service:5000/
-      entrypoint: http://127.0.0.1:8004/
+      entrypoint: http://127.0.0.1:8003/
       inject_token_in_swagger: True
     - name: record-service
       # entrypoint: http://record-service:5000/
-      entrypoint: http://127.0.0.1:8001/
+      entrypoint: http://127.0.0.1:8004/
       inject_token_in_swagger: True
     - name: chat-service
       # entrypoint: http://chat-service:5000/
@@ -68,31 +68,32 @@ policies:
       methods: (GET)
     - service: medical-card-service
       rule: r.sub.group_id == 1 || r.sub.group_id == 2 || r.sub.group_id == 3
-      resource: /family_status
-      methods: GET
+      resource: ^/family_status$
+      methods: (GET)
     - service: medical-card-service
       rule: r.sub.group_id == 1 || r.sub.group_id == 2 || r.sub.group_id == 3
-      resource: /education
-      methods: GET
+      resource: ^/education$
+      methods: (GET)
     - service: medical-card-service
       rule: r.sub.group_id == 1 || r.sub.group_id == 2 || r.sub.group_id == 3
-      resource: /busyness
-      methods: GET
+      resource: ^/busyness$
+      methods: (GET)
     
     # pages
     - service: medical-card-service
-      rule: r.sub.group_id == 2
-      resource: ^/pages(/.*)?$
-      methods: (GET)|(POST)
+      rule: r.sub.group_id == 2 && r.obj.body.id_doctor == r.sub.sub
+      resource: ^/pages/card/\d+/template/\d+?$
+      methods: (POST)
+    - service: medical-card-service
+      rule: r.sub.group_id == 2 || (r.sub.group_id == 3 && r.sub.card_owner_id == r.sub.sub)
+      resource: ^/pages/card/\d+$
+      resource_pattern: /pages/card/(?P<card_id>.*)
+      methods: (GET)
     - service: medical-card-service
       rule: r.sub.group_id == 2 && r.obj.params.page_id in r.sub.available_pages_of_medical_card
       resource: ^/pages/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
       resource_pattern: /pages/(?P<page_id>.*)
       methods: (PUT)|(DELETE)
-    - service: medical-card-service
-      rule: r.sub.group_id == 3
-      resource: ^/pages/card.*$
-      methods: (GET)
   
   # user-service
     # auth
@@ -109,7 +110,7 @@ policies:
       methods: (POST)
       white_list: true
     - service: user-service
-      resource: /auth/forgot-pasword
+      resource: /auth/forgot-password
       methods: (POST)
       white_list: true
     - service: user-service
@@ -144,7 +145,7 @@ policies:
       methods: (GET)
     - service: user-service
       rule: r.sub.group_id == 1 || r.sub.group_id == 2
-      resource: /users/all/summary
+      resource: ^/users/all/summary$
       methods: (GET)
     - service: user-service
       resource: ^/users/specialization/\d+$
@@ -159,6 +160,10 @@ policies:
 
 
     # specialization
+    - service: user-service
+      rule: r.sub.group_id == 1
+      resource: ^/specializations(/\d+)?$
+      methods: (GET)|(POST)|(PATCH)|(DELETE)
     - service: user-service
       resource: ^/specializations.*$
       methods: (GET)
@@ -176,54 +181,95 @@ policies:
   
   # health-diary-service
     - service: health-diary-service
-      rule: r.sub.group_id == 3
+      rule: r.sub.group_id == 2 || (r.sub.group_id == 3 && r.obj.params.user_id == r.sub.sub)
       resource: /diaries/user/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+      resource_pattern: /diaries/user/(?P<user_id>.*)
+      methods: (GET)
+    - service: health-diary-service
+      rule: r.sub.group_id == 3 && r.obj.params.user_id == r.sub.sub
+      resource: /diaries/user/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+      resource_pattern: /diaries/user/(?P<user_id>.*)
       methods: (POST)
     - service: health-diary-service
-      rule: r.sub.group_id == 3
+      rule: r.sub.group_id == 3 && r.obj.params.page_diary_id in r.sub.available_pages_of_health_diary
       resource: /diaries/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
-      methods: (GET)|(PATCH)|(DELETE)
-    - service: health-diary-service
-      rule: r.sub.group_id == 2 || r.sub.group_id == 3
-      resource: /diaries/user/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
-      methods: (GET)
+      resource_pattern: /diaries/(?P<page_diary_id>.*)
+      methods: (PATCH)|(DELETE)
 
 
   # record-service
     # records
     - service: record-service
       rule: r.sub.group_id == 1
-      resource: ^/records.*$
+      resource: ^/records(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?$
       methods: (GET)|(DELETE)
     - service: record-service
-      rule: r.sub.group_id == 2
-      resource: ^/records/doctor/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+      rule: (r.sub.group_id == 2 || r.sub.group_id == 3) && r.obj.params.user_id == r.sub.sub
+      resource: ^/records/user/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+      resource_pattern: /records/user/(?P<user_id>.*)
       methods: (GET)
     - service: record-service
-      rule: r.sub.group_id == 3
+      rule: r.sub.group_id == 3 && r.obj.body.id_user == r.sub.sub
       resource: ^/records$
       methods: (POST)
-    - service: record-service
-      rule: r.sub.group_id == 3
-      resource: ^/records/user/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
-      methods: (GET)
 
     # schedules
     - service: record-service
+      rule: r.sub.group_id == 1
+      resource: ^/schedules(/\d+)?$
+      methods: (POST)|(PATCH)|(DELETE)
+    - service: record-service
       rule: r.sub.group_id == 1 || r.sub.group_id == 3
-      resource: ^/schedules.*$
-      methods: (GET)|(POST)|(PATCH)|(DELETE)
-    # - service: record-service
-    #   rule: r.sub.group_id == 3
-    #   resource: ^/schedules/doctor/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/available_dates$
-    #   methods: (GET)
-    # - service: record-service
-    #   rule: r.sub.group_id == 1
-    #   resource: ^/schedules/doctor/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
-    #   methods: (GET)
+      resource: ^/schedules/doctor.*$
+      methods: (GET)
 
   # chat-service
+    # chat
     - service: chat-service
-      rule: r.sub.group_id == 1 || r.sub.group_id == 2 || r.sub.group_id == 3 
-      resource: ^/meetings.*$
-      methods: (GET)|(POST)
+      rule: r.sub.group_id == 2 
+      resource: ^/chats$
+      methods: (POST)
+    - service: chat-service
+      rule: (r.sub.group_id == 2 || r.sub.group_id == 3) && r.obj.params.user_id == r.sub.sub
+      resource: ^/chats/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+      resource_pattern: /chats/(?P<user_id>.*)
+      methods: (GET)
+    - service: chat-service
+      rule: (r.sub.group_id == 2 || r.sub.group_id == 3) && r.obj.params.chat_id in r.sub.available_chats && r.obj.params.user_id == r.sub.sub
+      resource: ^/ws/[0-9]+/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.*$
+      resource_pattern: /ws/(?P<chat_id>.*)/(?P<user_id>.*)
+      methods: (GET)
+    
+    # storage
+    - service: chat-service
+      rule: (r.sub.group_id == 2 || r.sub.group_id == 3) && r.obj.params.chat_id in r.sub.available_chats
+      resource: ^/chat_storage.*$
+      resource_pattern: /chat_storage/(?P<chat_id>.*)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.*$
+      methods: (GET)
+
+    # message
+    - service: chat-service
+      rule: (r.sub.group_id == 2 || r.sub.group_id == 3) && r.obj.params.chat_id in r.sub.available_chats
+      resource: ^/messages/last/\d+$
+      resource_pattern: /messages/last/(?P<chat_id>.*)
+      methods: (GET)
+    - service: chat-service
+      rule: (r.sub.group_id == 2 || r.sub.group_id == 3) && r.obj.params.message_id in r.sub.available_messages
+      resource: ^/messages/\d+$
+      resource_pattern: /messages/(?P<message_id>.*)
+      methods: (DELETE)
+
+    # metting
+    - service: chat-service
+      rule: r.sub.group_id == 1 || r.sub.group_id == 2 || r.sub.group_id == 3
+      resource: ^/meetings$
+      methods: (GET)
+    - service: chat-service
+      rule: (r.sub.group_id == 1 || r.sub.group_id == 2) || (r.sub.group_id == 3 && r.sub.record_id in r.sub.available_records)
+      resource: ^/meetings/\d+$
+      resource_pattern: /meetings/(?P<meeting_id>.*)
+      methods: (GET)
+    - service: chat-service
+      rule: r.sub.group_id == 3
+      resource: ^/meetings$
+      methods: (POST)

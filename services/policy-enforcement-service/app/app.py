@@ -1,8 +1,10 @@
 import logging
 from typing import Any, Dict
+import websockets
+import asyncio
 
 import httpx
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,11 +24,11 @@ def get_db():
 
 
 # setup logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)-9s %(message)s"
-)
+# logger = logging.getLogger(__name__)
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format="%(levelname)-9s %(message)s"
+# )
 
 app_config: config.Config = config.load_config()
 
@@ -63,12 +65,26 @@ app.add_middleware(
     methods=["GET", "DELETE", "PATCH", "POST", "PUT", "HEAD", "OPTIONS", "CONNECT", "TRACE"]
 )
 async def catch_all(request: Request, path_name: str, db: Session = Depends(get_db)):
-    enforce_result: EnforceResult = policy_checker.enforce(request, db)
+    enforce_result: EnforceResult = await policy_checker.enforce(request, db)
     if not enforce_result.access_allowed:
-        logger.info('The user does not have enough permissions. A blocked route: %s', path_name)
+        # logger.info('The user does not have enough permissions. A blocked route: %s', path_name)
         raise HTTPException(detail='Метод не доступен', status_code=404)
 
     return await redirect_user_request(request, enforce_result)
+
+
+@app.websocket(
+    "/{path_name:path}",
+)
+async def catch_websocket(websocket: WebSocket, db: Session = Depends(get_db)):
+    enforce_result, chat_id, client_id = await policy_checker.enforce_websocket(websocket, db)
+    if not enforce_result.access_allowed:
+        await websocket.close(code=1008)
+        raise HTTPException(detail='Метод не доступен', status_code=404)
+
+    location = enforce_result.redirect_service.split('/')[2]
+    target_url = f"ws://{location}/ws/{chat_id}/{client_id}"
+    await redirect_websocket(websocket, target_url)
 
 
 async def redirect_user_request(request: Request, enforce_result: EnforceResult):
@@ -84,3 +100,32 @@ async def redirect_user_request(request: Request, enforce_result: EnforceResult)
         status_code=rp_resp.status_code,
         headers=rp_resp.headers
     )
+
+
+async def redirect_websocket(client_ws: WebSocket, target_url: str):
+    await client_ws.accept()
+
+    async with websockets.connect(target_url) as server_ws:
+        async def forward_client_to_server(client_ws, server_ws):
+            try:
+                while True:
+                    data = await client_ws.receive_text()
+                    await server_ws.send(data)
+            except WebSocketDisconnect:
+                await server_ws.close()
+
+        async def forward_server_to_client(client_ws, server_ws):
+            try:
+                while True:
+                    data = await server_ws.recv()
+                    await client_ws.send_text(data)
+            except websockets.ConnectionClosed:
+                await client_ws.close()
+
+        try:
+            await asyncio.gather(
+                forward_client_to_server(client_ws, server_ws),
+                forward_server_to_client(client_ws, server_ws),
+            )
+        except Exception as e:
+            print(f"Error in redirect_websocket: {e}")
