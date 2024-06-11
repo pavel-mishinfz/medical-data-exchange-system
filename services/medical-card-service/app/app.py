@@ -7,7 +7,6 @@ from cryptography.fernet import Fernet
 
 from fastapi import FastAPI, Depends, HTTPException, Body, UploadFile, File
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 
 from pydicom import dcmread
 from sqlalchemy import text
@@ -70,15 +69,7 @@ CIPHER_SUITE: Fernet = Fernet(
 
 app = FastAPI(title='Medical Card Service',
               description=description,
-              openapi_tags=tags_metadata)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)              
+              openapi_tags=tags_metadata)            
 
 ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.resolve()
 app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
@@ -189,14 +180,6 @@ def add_page(card_id: int, template_id: int, page_in: PageIn, db: Session = Depe
         created_page = crud.create_page(db, card_id, template_id, page_in)
         return decrypt.decrypt_page(created_page, CIPHER_SUITE)
     raise HTTPException(status_code=404, detail="Медкарта не найдена")
-
-
-# @app.get('/pages/{page_id}', response_model=Page, summary='Возвращает страницу', tags=["pages"])
-# def get_page(page_id: uuid.UUID, db: Session = Depends(get_db)):
-#     page = crud.get_page(db, page_id)
-#     if page is None:
-#         raise HTTPException(status_code=404, detail="Страница не найдена")
-#     return decrypt.decrypt_page(page, CIPHER_SUITE)
 
 
 @app.get('/pages/card/{card_id}', response_model=list[Page], summary='Возвращает список страниц', tags=["pages"])

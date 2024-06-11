@@ -1,7 +1,6 @@
 import uuid
 
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from .schemas import PageDiary, PageDiaryIn, PageDiaryOptional
@@ -43,14 +42,6 @@ app = FastAPI(title='Health Diary Service',
               description=description,
               openapi_tags=tags_metadata)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 @app.post(
     '/diaries/user/{user_id}',
@@ -60,19 +51,6 @@ app.add_middleware(
 )
 async def add_diary(user_id: uuid.UUID, page_diary_in: PageDiaryIn, db: AsyncSession = Depends(get_async_session)):
     return await crud.create_page_diary(db, user_id, page_diary_in)
-
-
-@app.get(
-    '/diaries/{page_diary_id}',
-    response_model=PageDiary,
-    summary='Возвращает страницу дневника',
-    tags=["diaries"]
-)
-async def get_diary(page_diary_id: uuid.UUID, db: AsyncSession = Depends(get_async_session)):
-    page_diary = await crud.get_page_diary(db, page_diary_id)
-    if page_diary is None:
-        raise HTTPException(status_code=404, detail="Страница не найдена")
-    return page_diary
 
 
 @app.get(

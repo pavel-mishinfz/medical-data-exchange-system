@@ -48,8 +48,7 @@ async def get_record(
 
 async def get_records_list(
         db: AsyncSession,
-        user_id: uuid.UUID = None,
-        doctor_id: uuid.UUID = None
+        user_id: uuid.UUID
     ) -> list[models.Record] | None:
     """
     Возвращает список записей на приемы для пациента/врача
@@ -58,7 +57,7 @@ async def get_records_list(
                               .filter(
                                   or_ (
                                       models.Record.id_user == user_id,
-                                      models.Record.id_doctor == doctor_id
+                                      models.Record.id_doctor == user_id
                                       ))
                               .filter(models.Record.date >= datetime.datetime.today().date()) \
                               .order_by(models.Record.date.asc())  

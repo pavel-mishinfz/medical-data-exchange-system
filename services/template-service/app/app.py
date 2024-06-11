@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy.orm import Session
 
@@ -41,14 +40,6 @@ SessionLocal = DB_INITIALIZER.init_database(str(cfg.postgres_dsn))
 app = FastAPI(title='Template Service',
               description=description,
               openapi_tags=tags_metadata)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 def get_db():

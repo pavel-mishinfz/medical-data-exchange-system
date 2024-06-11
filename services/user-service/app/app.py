@@ -7,7 +7,7 @@ from datetime import datetime, timezone, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, APIRouter
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -59,16 +59,7 @@ app = FastAPI(title='User Service',
               description=description,
               openapi_tags=tags_metadata)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 ROOT_SERVICE_DIR = pathlib.Path(__file__).parent.parent.resolve()
-app.mount("/storage", StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage")), name="storage")
 
 users.inject_secrets(
     jwt_secret=app_config.jwt_secret.get_secret_value(),
@@ -244,23 +235,6 @@ async def delete_user_image_by_id(
     return await users.crud_user.update_img(None, user.id, session)
 
 
-# @app.get(
-#     "/users/doctor/{doctor_id}/summary",
-#     response_model=schemas.user.UserReadSummary,
-#     summary='Возвращает информацию о враче для пользователя',
-#     dependencies=[Depends(fastapi_users.current_user(active=True, verified=True))],
-#     tags=['users']
-#     )
-# async def get_doctor_for_patient(
-#     doctor_id: uuid.UUID,
-#     session: AsyncSession = Depends(database.get_async_session)
-# ):
-#     user = await users.crud_user.get_doctor(doctor_id, session)
-#     if user is None:
-#         raise HTTPException(status_code=404, detail="Пользователь не найден")
-#     return user
-
-
 @app.get(
     "/users/user/{user_id}/summary",
     response_model=schemas.user.UserReadSummary,
@@ -392,18 +366,6 @@ async def get_list_users(
     return await users.crud_user.get_users_list(session)
 
 
-# @app.get(
-#     "/users/patients", response_model=list[schemas.user.UserReadSummary],
-#     summary="Возвращает список всех пациентов",
-#     dependencies=[Depends(fastapi_users.current_user(active=True, verified=True))],
-#     tags=["users"]
-#     )
-# async def get_list_patients(
-#     session: AsyncSession = Depends(database.get_async_session)
-#     ):
-#     return await users.crud_user.get_users_list(session, group_id=3)
-
-
 @app.post(
     "/specializations",
     response_model=schemas.specialization.Specialization,
@@ -516,20 +478,32 @@ async def check_confirm_code(
 
 
 @app.get(
-    "/storage/{path:path}",
+    "/storage/{file_name}",
     summary="Возвращает изображение пользователя",
     tags=["users"])
-async def serve_user_static_file(path: str):
-    return StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage"))(path)
+async def serve_user_static_file(file_name: str):
+    user_storage = os.path.join(ROOT_SERVICE_DIR, "storage")
+    file_path = os.path.join(user_storage, file_name)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Файл не найден")
+
+    return FileResponse(file_path)
+    
 
 
 @app.get(
-    "/storage/specializations/{path:path}",
+    "/storage/specializations/{file_name}",
     summary="Возвращает изображение специализации",
     tags=["users"])
 async def serve_spec_static_file(file_name: str):
-    static_files = StaticFiles(directory=os.path.join(ROOT_SERVICE_DIR, "storage", "specializations"))
-    return await static_files.get_response(file_name)
+    spec_storage = os.path.join(ROOT_SERVICE_DIR, "storage", "specializations")
+    file_path = os.path.join(spec_storage, file_name)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Файл не найден")
+
+    return FileResponse(file_path)
 
 
 @app.on_event("startup")
