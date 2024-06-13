@@ -144,7 +144,7 @@ policies:
       resource: ^/users/user/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/summary$
       methods: (GET)
     - service: user-service
-      rule: r.sub.group_id == 1 || r.sub.group_id == 2
+      rule: r.sub.group_id == 1 || r.sub.group_id == 2 || r.sub.group_id == 3
       resource: ^/users/all/summary$
       methods: (GET)
     - service: user-service
@@ -255,7 +255,7 @@ policies:
       methods: (GET)
     - service: chat-service
       rule: (r.sub.group_id == 2 || r.sub.group_id == 3) && r.obj.params.message_id in r.sub.available_messages
-      resource: ^/messages/\d+$
+      resource: ^/messages/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
       resource_pattern: /messages/(?P<message_id>.*)
       methods: (DELETE)
 
