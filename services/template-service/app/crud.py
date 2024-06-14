@@ -63,12 +63,10 @@ def delete_template(
     Удаляет информацию о шаблоне
     """
     deleted_template = get_template(db, template_id)
+    if deleted_template is None:
+        return None
 
-    result = db.query(models.Template) \
-        .filter(models.Template.id == template_id) \
-        .delete()
+    deleted_template.is_deleted = True
     db.commit()
 
-    if result == 1:
-        return deleted_template
-    return None
+    return deleted_template
