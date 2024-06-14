@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class AddressBase(BaseModel):
@@ -20,6 +20,64 @@ class AddressIn(AddressBase):
     street: str = Field(title='Улица')
     house: int = Field(title='Дом')
 
+    @field_validator('locality', 'street', mode='before')
+    @classmethod
+    def validate_required_fields(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        return v
+
+    @field_validator('house', mode='before')
+    @classmethod
+    def validate_house(cls, v):
+        if v is None:
+            raise ValueError('Поле не должно быть пустым')
+        if not isinstance(v, int):
+            try:
+                int(v)
+            except ValueError:
+                raise ValueError('Поле должно иметь целочисленный тип')
+        return int(v)
+
+    @field_validator('apartment', mode='before')
+    @classmethod
+    def validate_apartment(cls, v):
+        if v and not isinstance(v, int):
+            try:
+                int(v)
+            except ValueError:
+                raise ValueError('Поле должно иметь целочисленный тип')
+            return int(v)
+        return v
+
 
 class AddressOptional(AddressBase):
-    pass
+    @field_validator('locality', 'street', mode='before')
+    @classmethod
+    def validate_required_fields(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        return v
+
+    @field_validator('house', mode='before')
+    @classmethod
+    def validate_house(cls, v):
+        if v is None:
+            raise ValueError('Поле не должно быть пустым')
+        if not isinstance(v, int):
+            try:
+                int(v)
+            except ValueError:
+                raise ValueError('Поле должно иметь целочисленный тип')
+        return int(v)
+
+    @field_validator('apartment', mode='before')
+    @classmethod
+    def validate_apartment(cls, v):
+        if v and not isinstance(v, int):
+            try:
+                int(v)
+            except ValueError:
+                raise ValueError('Поле должно иметь целочисленный тип')
+            return int(v)
+        return v

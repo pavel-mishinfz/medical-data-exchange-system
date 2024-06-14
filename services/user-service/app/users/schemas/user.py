@@ -1,9 +1,10 @@
 import datetime
 import uuid
+import re
 from typing import Optional
 
 from fastapi_users import schemas
-from pydantic import Field, BaseModel
+from pydantic import Field, BaseModel, field_validator
 
 from .specialization import Specialization
 
@@ -33,6 +34,79 @@ class UserCreate(schemas.BaseUserCreate):
     desc: Optional[str] = None
     is_deleted: Optional[bool] = False
 
+    @field_validator('email', mode='before')
+    @classmethod
+    def validate_email(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        if not re.fullmatch('^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$', v):
+            raise ValueError('Email некорректной формы')
+        return v
+
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        return v
+
+    @field_validator('name', 'surname')
+    @classmethod
+    def validate_name_and_surname(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        return v
+    
+    @field_validator('birthday', mode='before')
+    @classmethod
+    def validate_bday(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        try:
+            parsed_date = datetime.datetime.strptime(v, "%Y-%m-%d").date()
+        except ValueError:
+            raise ValueError('Поле должно иметь формат даты')
+        if parsed_date > datetime.date.today():
+            raise ValueError('Дата не может быть больше текущей')
+        return v
+    
+    @field_validator('specialization_id', mode='before')
+    @classmethod
+    def validate_spec(cls, v, values):
+        group_id = values.data.get('group_id')
+        if group_id == 2:
+            if v is None:
+                raise ValueError('Поле не должно быть пустым')
+            if not isinstance(v, int):
+                raise ValueError('Поле должно иметь целочисленный тип')
+            if v <= 0:
+                raise ValueError('Поле должно иметь значение больше 0')
+        return v
+    
+    @field_validator('date_employment', mode='before')
+    @classmethod
+    def validate_date_employment(cls, v, values):
+        group_id = values.data.get('group_id')
+        if group_id == 2:
+            if v is None or not v.strip():
+                raise ValueError('Поле не должно быть пустым')
+            try:
+                parsed_date = datetime.datetime.strptime(v, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValueError('Поле должно иметь формат даты')
+            if parsed_date > datetime.date.today():
+                raise ValueError('Дата не может быть больше текущей')
+        return v
+
+    @field_validator('desc')
+    @classmethod
+    def validate_desc(cls, v, values):
+        group_id = values.data.get('group_id')
+        if group_id == 2:
+            if v is None or not v.strip():
+                raise ValueError('Поле не должно быть пустым')
+        return v
+
 
 class UserUpdate(schemas.BaseUserUpdate):
     name: Optional[str] = None
@@ -45,6 +119,63 @@ class UserUpdate(schemas.BaseUserUpdate):
     date_employment: Optional[datetime.date] = None
     desc: Optional[str] = None
     is_deleted: Optional[bool] = False
+
+    @field_validator('name', 'surname')
+    @classmethod
+    def validate_name_and_surname(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        return v
+    
+    @field_validator('birthday', mode='before')
+    @classmethod
+    def validate_bday(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        try:
+            parsed_date = datetime.datetime.strptime(v, "%Y-%m-%d").date()
+        except ValueError:
+            raise ValueError('Поле должно иметь формат даты')
+        if parsed_date > datetime.date.today():
+            raise ValueError('Дата не может быть больше текущей')
+        return v
+    
+    @field_validator('specialization_id', mode='before')
+    @classmethod
+    def validate_spec(cls, v, values):
+        group_id = values.data.get('group_id')
+        if group_id == 2:
+            if v is None:
+                raise ValueError('Поле не должно быть пустым')
+            if not isinstance(v, int):
+                raise ValueError('Поле должно иметь целочисленный тип')
+            if v <= 0:
+                raise ValueError('Поле должно иметь значение больше 0')
+        return v
+    
+    @field_validator('date_employment', mode='before')
+    @classmethod
+    def validate_date_employment(cls, v, values):
+        group_id = values.data.get('group_id')
+        if group_id == 2:
+            if v is None or not v.strip():
+                raise ValueError('Поле не должно быть пустым')
+            try:
+                parsed_date = datetime.datetime.strptime(v, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValueError('Поле должно иметь формат даты')
+            if parsed_date > datetime.date.today():
+                raise ValueError('Дата не может быть больше текущей')
+        return v
+
+    @field_validator('desc')
+    @classmethod
+    def validate_desc(cls, v, values):
+        group_id = values.data.get('group_id')
+        if group_id == 2:
+            if v is None or not v.strip():
+                raise ValueError('Поле не должно быть пустым')
+        return v
 
 
 class UserReadSummary(BaseModel):

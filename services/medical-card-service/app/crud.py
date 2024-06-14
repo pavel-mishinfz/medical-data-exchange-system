@@ -32,7 +32,7 @@ def create_card(
     passport = crud_passport.create_passport(db, card_in.passport)
 
     id_disability = None
-    if card_in.disability:
+    if card_in.disability and card_in.disability.name and card_in.disability.group and card_in.disability.create_date:
         disability = crud_disability.create_disability(db, card_in.disability)
         id_disability = disability.id
 

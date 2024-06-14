@@ -216,12 +216,20 @@ policies:
     # schedules
     - service: record-service
       rule: r.sub.group_id == 1
-      resource: ^/schedules(/\d+)?$
-      methods: (POST)|(PATCH)|(DELETE)
+      resource: ^/schedules$
+      methods: (POST)
     - service: record-service
-      rule: r.sub.group_id == 1 || r.sub.group_id == 3
-      resource: ^/schedules/doctor.*$
+      rule: r.sub.group_id == 1
+      resource: ^/schedules/\d+$
+      methods: (PATCH)|(DELETE)
+    - service: record-service
+      rule: r.sub.group_id == 1
+      resource: ^/schedules/doctor/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
       methods: (GET)
+    - service: record-service
+      resource: ^/schedules/doctor/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/available_dates$
+      methods: (GET)
+      white_list: true
 
   # chat-service
     # chat

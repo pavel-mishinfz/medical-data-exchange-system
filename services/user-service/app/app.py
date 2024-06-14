@@ -5,9 +5,11 @@ import uuid
 import asyncio
 from datetime import datetime, timezone, timedelta
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile, APIRouter
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, APIRouter, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+
+from pydantic import ValidationError
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

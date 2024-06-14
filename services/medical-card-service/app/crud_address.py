@@ -23,19 +23,19 @@ def create_address(db: Session, address_in: AddressIn) -> models.Address:
     encoded_district = None
     encoded_apartment = None
     if address_in.subject:
-        encoded_subject = address_in.subject.encode()
+        encoded_subject = CIPHER_SUITE.encrypt(address_in.subject.encode())
     if address_in.district:
-        encoded_district = address_in.district.encode()
+        encoded_district = CIPHER_SUITE.encrypt(address_in.district.encode())
     if address_in.apartment:
-        encoded_apartment = str(address_in.apartment).encode()
+        encoded_apartment = CIPHER_SUITE.encrypt(str(address_in.apartment).encode())
 
     db_address = models.Address(
-        subject=CIPHER_SUITE.encrypt(encoded_subject),
-        district=CIPHER_SUITE.encrypt(encoded_district),
+        subject=encoded_subject,
+        district=encoded_district,
         locality=CIPHER_SUITE.encrypt(address_in.locality.encode()),
         street=CIPHER_SUITE.encrypt(address_in.street.encode()),
         house=CIPHER_SUITE.encrypt(str(address_in.house).encode()),
-        apartment=CIPHER_SUITE.encrypt(encoded_apartment)
+        apartment=encoded_apartment
     )
 
     db.add(db_address)

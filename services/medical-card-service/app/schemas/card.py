@@ -1,9 +1,10 @@
 import uuid
+import re
 
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from .address import AddressIn, AddressOptional
 from .passport import PassportIn, PassportOptional
 from .disability import DisabilityIn, DisabilityOptional
@@ -50,15 +51,61 @@ class CardIn(CardBase):
     is_man: bool = Field(title='Пол')
     birthday: date = Field(title='Дата рождения')
     address: AddressIn = Field(title='Место регистрации')
-    phone: str = Field(title='Номер телефона', min_length=11, max_length=12)
+    phone: str = Field(title='Номер телефона')
     is_urban_area: bool = Field(title='Сельская/городская местность')
-    number_policy: str = Field(title='Номер полиса', min_length=16, max_length=16)
-    snils: str = Field(title='СНИЛС', min_length=14, max_length=14)
-    insurance_company: str = Field(title='Страховая организация')
+    number_policy: str = Field(title='Номер полиса')
+    snils: str = Field(title='СНИЛС')
     passport: PassportIn = Field(title='Паспорт')
     id_family_status: int = Field(title='Семейное положение')
     id_education: int = Field(title='Образование')
     id_busyness: int = Field(title='Занятость')
+
+    @field_validator('name', 'surname', mode='before')
+    @classmethod
+    def validate_name(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        return v
+
+    @field_validator('birthday', mode='before')
+    @classmethod
+    def validate_bday(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        try:
+            parsed_date = datetime.strptime(v, "%Y-%m-%d").date()
+        except ValueError:
+            raise ValueError('Поле должно иметь формат даты')
+        if parsed_date > date.today():
+            raise ValueError('Дата не может быть больше текущей')
+        return v
+
+    @field_validator('phone', mode='before')
+    @classmethod
+    def validate_phone(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        if not re.match('^\+[0-9]{11}$', str(v)):
+            raise ValueError('Значение должно быть в формате +7XXXXXXXXXX')
+        return v
+
+    @field_validator('number_policy', mode='before')
+    @classmethod
+    def validate_number_policy(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        if not re.match('^[0-9]{16}$', str(v)):
+            raise ValueError('Значение должно быть длиной шестнадцать цифр')
+        return v
+
+    @field_validator('snils', mode='before')
+    @classmethod
+    def validate_snils(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        if not re.match('^[0-9]{3}-[0-9]{3}-[0-9]{3} [0-9]{2}$', str(v)):
+            raise ValueError('Значение должно быть в формате XXX-XXX-XXX XX')
+        return v
 
 
 class Card(CardBase):
@@ -81,6 +128,53 @@ class CardOptional(CardBase):
     id_education: Optional[int] = None
     id_busyness: Optional[int] = None
     disability: Optional[DisabilityOptional] = None
+
+    @field_validator('name', 'surname', mode='before')
+    @classmethod
+    def validate_name(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        return v
+
+    @field_validator('birthday', mode='before')
+    @classmethod
+    def validate_bday(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        try:
+            parsed_date = datetime.strptime(v, "%Y-%m-%d").date()
+        except ValueError:
+            raise ValueError('Поле должно иметь формат даты')
+        if parsed_date > date.today():
+            raise ValueError('Дата не может быть больше текущей')
+        return v
+
+    @field_validator('phone', mode='before')
+    @classmethod
+    def validate_phone(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        if not re.match('^\+[0-9]{11}$', str(v)):
+            raise ValueError('Значение должно быть в формате +7XXXXXXXXXX')
+        return v
+
+    @field_validator('number_policy', mode='before')
+    @classmethod
+    def validate_number_policy(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        if not re.match('^[0-9]{16}$', str(v)):
+            raise ValueError('Значение должно быть длиной шестнадцать цифр')
+        return v
+
+    @field_validator('snils', mode='before')
+    @classmethod
+    def validate_snils(cls, v):
+        if v is None or not v.strip():
+            raise ValueError('Поле не должно быть пустым')
+        if not re.match('^[0-9]{3}-[0-9]{3}-[0-9]{3} [0-9]{2}$', str(v)):
+            raise ValueError('Значение должно быть в формате XXX-XXX-XXX XX')
+        return v
 
 
 class CardIdsSelfAndPatient(BaseModel):
