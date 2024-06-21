@@ -1,13 +1,13 @@
 # API сервиса шаблонов
 
 
-| Ресурс                   | Метод  | Что делает                    |
-|--------------------------|--------|-------------------------------|
-| /templates/{template_id} | GET    | Возвращает шаблон             |
-| /templates               | GET    | Возвращает список всех шаблон |
-| /templates               | POST   | Добавляет шаблон в базу       |
-| /templates/{template_id} | PUT    | Обновляет шаблон              |
-| /templates/{template_id} | DELETE | Удаляет шаблон из базы        | 
+| Ресурс                   | Метод  | Что делает                    | Доступ              |
+|--------------------------|--------|-------------------------------|---------------------|
+| /templates/{template_id} | GET    | Возвращает шаблон             | Администратор, Врач |
+| /templates               | GET    | Возвращает список всех шаблон | Администратор, Врач |
+| /templates               | POST   | Добавляет шаблон в базу       | Администратор       |
+| /templates/{template_id} | PUT    | Обновляет шаблон              | Администратор       |
+| /templates/{template_id} | DELETE | Удаляет шаблон из базы        | Администратор       |
 
 
 # Зависимости
@@ -33,16 +33,14 @@ uvicorn app:app --port 5000 --reload
 или
 
 ```bash
-export POSTGRES_DSN=postgresql://psgadmin:1111@192.168.144.1:5432/medical-system 
-export PATH_TO_STORAGE=/src/storage/ 
+export POSTGRES_DSN=postgresql://postgres:postgres@localhost:5432/postgres 
 uvicorn app:app --reload
 ```
 
 # Конфигурация
 | Переменная      | Назначение                      | Значение по умолчанию                        |
 |-----------------|---------------------------------|----------------------------------------------|
-| POSTGRES_DSN    | Строка подключения к PostgreSQL | postgresql://user:pass@localhost:5432/foobar | 
-| PATH_TO_STORAGE | Строка пути для хранения файлов | /src/storage/                                | 
+| POSTGRES_DSN    | Строка подключения к PostgreSQL | postgresql://user:pass@localhost:5432/foobar |
 
 # Документация
 
@@ -50,7 +48,13 @@ uvicorn app:app --reload
 
 # Сборка образа
 ```bash
-docker build -t medical-system/template-service:0.1 .
+docker build -t medical-system/template-service:0.0.1 .
+```
+
+или 
+
+```bash
+./build_image.sh
 ```
 
 # Модули сервиса
