@@ -1,0 +1,1 @@
+sudo docker build -t medical-system/chat-service:0.0.1 . --network=host
