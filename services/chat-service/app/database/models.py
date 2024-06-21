@@ -20,7 +20,7 @@ class Message(Base):
     message = Column(LargeBinary)
     sender_id = Column(UUID(as_uuid=True), nullable=False)
     chat_id = Column(Integer, nullable=False)
-    send_date = Column(TIMESTAMP, default=func.now())
+    send_date = Column(TIMESTAMP(timezone=True), default=func.now())
     documents = relationship('MessageDocument', backref='msg', lazy="selectin")
     is_deleted = Column(Boolean, default=False)
 

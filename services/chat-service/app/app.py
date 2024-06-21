@@ -119,8 +119,9 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: int, client_id: uuid
         summary='Создает чат')
 async def add_chat(chat: ChatIn, session: AsyncSession = Depends(database.get_async_session)) -> Chat:
     created_chat = await crud.create_chat(session, chat)
-    chat_directory = os.path.join(ROOT_SERVICE_DIR, str(created_chat.id))
-    os.makedirs(chat_directory)
+    chat_directory = os.path.join(ROOT_SERVICE_DIR, "chat_storage", str(created_chat.id))
+    if not os.path.exists(chat_directory):
+        os.makedirs(chat_directory)
     return created_chat
 
 
@@ -304,6 +305,6 @@ async def create_file(file_content: bytes, path_to_file: str):
     try:
         async with aiofiles.open(path_to_file, 'wb') as out_file:
             await out_file.write(file_content)
-    except Exception:
+    except Exception as e:
         raise HTTPException(status_code=500, detail="Ошибка при работе с файлом")
     

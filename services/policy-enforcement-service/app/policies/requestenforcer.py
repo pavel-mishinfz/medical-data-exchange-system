@@ -158,8 +158,7 @@ class RequestEnforcer:
             
             meeting = crud_meeting.get_meeting(db, meeting_id)
             # Add record id
-            result.update({'record_id': meeting.record_id})
-
+            result.update({'record_id': str(meeting.record_id)})
 
         return result
 

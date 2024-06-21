@@ -15,7 +15,7 @@ def as_dict(obj):
     return data
 
 def init_existing_models(base_map):
-    global Pages, Cards, Diaries, Chats, Messages, Records
+    global Pages, Cards, Diaries, Chats, Messages, Meetings, Records
 
     Pages = base_map.classes.pages
     Cards = base_map.classes.cards
