@@ -1,29 +1,23 @@
 version: "2.0"
 volumes:
-  # mongo-data:
-  #   driver: local
-  #   driver_opts:
-  #     o: bind
-  #     type: none
-  #     device: ./mongo/data
   postgresql-data:
     driver: local
     driver_opts:
       o: bind
       type: none
       device: ./postgresql/data
-  template-service-storage:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ../services/template-service/storage
   user-service-data:
     driver: local
     driver_opts:
       o: bind
       type: none
       device: ./user-service
+  user-service-storage:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ../services/user-service/storage
   policy-enforcement-data:
     driver: local
     driver_opts:
@@ -35,13 +29,13 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: ../services/medical-card-service/storage
-#  e2e-test-data:
-#    driver: local
-#    driver_opts:
-#      o: bind
-#      type: none
-#      device: ./e2e_test
+      device: ./medical-card-service
+  chat-service-storage:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ../services/chat-service/chat_storage
 services:
   postgresql:
     image: postgres:14.9-alpine3.18
@@ -60,15 +54,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
-  # mongo:
-  #   image: mongo:7.0
-  #   volumes:
-  #     - mongo-data:/data/db
-  #     - ./mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
-  #   ports:
-  #     - "27017:27017"
-  #   environment:
-  #     - MONGO_INITDB_DATABASE=medical-system
   policy-enforcement-service:
     image: medical-system/policy-enforcement-service:0.0.1
     ports:
@@ -76,6 +61,7 @@ services:
     volumes:
       - policy-enforcement-data:/mnt/
     environment:
+      POSTGRES_DSN: ${POSTGRES_DSN}
       JWT_SECRET: ${JWT_SECRET}
       POLICIES_CONFIG_PATH: ${POLICIES_CONFIG_PATH}
     depends_on:
@@ -84,15 +70,13 @@ services:
       - user-service
       - health-diary-service
       - record-service
+      - chat-service
   template-service:
     image: medical-system/template-service:0.0.1
-    volumes:
-      - template-service-storage:/src/storage
     ports:
       - "5001:5000"
     environment:
       POSTGRES_DSN: ${POSTGRES_DSN}
-      PATH_TO_STORAGE: ${PATH_TO_STORAGE}
     depends_on:
       postgresql:
         condition: service_healthy
@@ -105,7 +89,7 @@ services:
     environment:
       POSTGRES_DSN: ${POSTGRES_DSN}
       DEFAULT_DATA_CONFIG_PATH: ${DEFAULT_DATA_CONFIG_PATH}
-      PATH_TO_STORAGE: ${PATH_TO_STORAGE}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
     depends_on:
       postgresql:
         condition: service_healthy
@@ -123,9 +107,11 @@ services:
       SMTP_SERVER: ${SMTP_SERVER}
       SMTP_PORT: ${SMTP_PORT}
       DEFAULT_GROUPS_CONFIG_PATH: ${DEFAULT_GROUPS_CONFIG_PATH}
-      PATH_TO_STORAGE: ${PATH_TO_STORAGE}
+      DEFAULT_SPECIALIZATIONS_CONFIG_PATH: ${DEFAULT_SPECIALIZATIONS_CONFIG_PATH}
+      PATH_TO_STORAGE: ${PATH_TO_USER_STORAGE}
     volumes:
       - user-service-data:/mnt/
+      - user-service-storage:/src/storage
     depends_on:
       postgresql:
         condition: service_healthy
@@ -147,13 +133,19 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
-#  test-runner:
-#    image: python:3.11
-#    volumes:
-#      - e2e-test-data:/mnt/
-#    command: >
-#      bash -c "pip install --upgrade pip
-#      && pip install requests pydantic sqlalchemy psycopg2-binary
-#      && python -m unittest /mnt/test.py"
-#    depends_on:
-#      - policy-enforcement-service
+  chat-service:
+    image: medical-system/chat-service:0.0.1
+    ports:
+      - "5006:5000"
+    environment:
+      POSTGRES_DSN_ASYNC: ${POSTGRES_DSN_ASYNC}
+      CLIENT_ID: ${CLIENT_ID}
+      ACCOUNT_ID: ${ACCOUNT_ID}
+      CLIENT_SECRET: ${CLIENT_SECRET}
+      PATH_TO_STORAGE: ${PATH_TO_CHAT_STORAGE}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
+    volumes:
+      - chat-service-storage:/src/chat_storage
+    depends_on:
+      postgresql:
+        condition: service_healthy
